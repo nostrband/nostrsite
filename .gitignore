@@ -1,0 +1,4 @@
+*.nsec
+*.event
+dist
+node_modules

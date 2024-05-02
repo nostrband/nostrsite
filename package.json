@@ -1,0 +1,30 @@
+{
+  "name": "nostrsite",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@nostr-dev-kit/ndk": "^2.7.1",
+    "browser-hbs": "file:../browser-hbs",
+    "nostr-tools": "^1.17.0",
+    "path-browserify": "^1.0.1",
+    "workbox-core": "^7.1.0",
+    "workbox-expiration": "^7.1.0",
+    "workbox-precaching": "^7.1.0",
+    "workbox-routing": "^7.1.0",
+    "workbox-strategies": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/path-browserify": "^1.0.2",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10",
+    "vite-tsconfig-paths": "^4.3.2"
+  }
+}

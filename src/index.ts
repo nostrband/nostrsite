@@ -1,76 +1,83 @@
-console.log("starting")
-import NDK from "@nostr-dev-kit/ndk";
-console.log("got ndk")
+  import { SiteAddr } from "./nostrsite/types/site";
+import { setHtml } from "./html";
+import { nip19 } from "nostr-tools";
+import { KIND_SITE } from "./consts";
+import { Renderer } from "./renderer";
+import { launchPwa } from "./pwa";
+import { setScriptUrl } from "./pwa-code";
 
-// @ts-ignore FIXME ADD TYPES
-import BrowserHbs from "browser-hbs";
+export const INDEX_SCRIPT_URL = import.meta.url;
+setScriptUrl(INDEX_SCRIPT_URL);
 
-import * as serviceWorkerRegistration from './serviceWorkerRegistration';
-import { SiteInfo } from "./types/siteinfo";
-import { HBS } from "./hbs/hbs";
-
-// https://www.w3.org/Proposal.html
-// WWW was proposed as a separate project on Nov 12 1990,
-// I particularly like their plan to have "automatic notification of a reader when
-// new material of interest to him/her has become available" within 6 months.
-// We're 34 years in, and this is still not a core part of the web. Nostr
-// will fix this. Nov + 6 months = May 12 = 0512.
-const KIND_SITE = 30512;
-
-const dir = "/views/";
-
-let ndk;
-
-async function fetchManifest() {
+async function getAddr(): Promise<SiteAddr | undefined> {
   // <link rel="manifest" href="manifest.json" />
-  const links = document.getElementsByTagName("link");
-  for (const l of links) {
-    const rel = l.getAttribute("rel");
-    if (l.getAttribute("rel") !== "manifest") continue;
+  const metas = document.getElementsByTagName("meta");
+  for (const meta of metas) {
+    if (meta.getAttribute("property") !== "nostr:site") continue;
 
-    const href = l.getAttribute("href");
-    if (!href) continue;
+    const content = meta.getAttribute("content");
+    if (!content || !content.startsWith("naddr1")) {
+      console.log("Bad meta nostr:site value: ", content);
+      continue;
+    }
 
-    const r = await fetch(href);
-    return await r.json();
+    const { type, data } = nip19.decode(content);
+    if (type !== "naddr" || data.kind !== KIND_SITE || !data.pubkey.trim()) {
+      console.log("Bad meta nostr:site addr: ", type, data);
+      continue;
+    }
+
+    return {
+      name: data.identifier,
+      pubkey: data.pubkey,
+      relays: data.relays,
+    };
   }
 
   return undefined;
 }
 
-async function fetchSite(info: SiteInfo) {
-  // FIXME fetch from cache
-
-  ndk = new NDK({
-    explicitRelayUrls: info.relays,
-  });
-
-  await ndk.connect();
-
-  const site = await ndk.fetchEvent({
-    // @ts-ignore
-    kinds: [KIND_SITE],
-    authors: [info.admin_pubkey],
-    "#d": [info.name],
-  });
-
-  return site;
-}
-
 async function render() {
-  const manifest = await fetchManifest();
-  console.log("manifest", manifest);
-  const site = await fetchSite(manifest.nostr_site);
-  console.log("site", site);
+  // read-only thing, but SW should re-fetch
+  // it and update HBS object if something changes
+  const addr = await getAddr();
+  console.log("addr", addr);
+  if (!addr) throw new Error("No nostr site addr");
 
-  const hbs = new HBS(dir, manifest.nostr_site);
-  console.log("hbs", hbs);
+  const renderer = new Renderer(addr);
+  await renderer.start();
 
-  const html = await hbs.render(document.location.pathname);
-  document.write(html);
+  // render using hbs and replace document.html
+  const html = await renderer.render(document.location.pathname);
+  setHtml(html);
 }
 
-console.log("start");
-render();
+async function startPwa() {
+  const addr = await getAddr();
+  console.log("addr", addr);
+  if (!addr) throw new Error("No nostr site addr");
 
-serviceWorkerRegistration.register();
+  // sw is registered and popup shown
+  launchPwa();
+
+  // when sw is active, notify it about our site address
+  navigator.serviceWorker.ready.then(async (r: ServiceWorkerRegistration) => {
+    console.log("sw ready", JSON.stringify(addr));
+    r.active?.postMessage({ method: "setSiteAddr", addr });
+  });
+}
+
+console.log("INDEX_SCRIPT_URL", INDEX_SCRIPT_URL);
+const pwa = new URL(INDEX_SCRIPT_URL).searchParams.get("pwa") === "true";
+console.log("start pwa", pwa);
+if (pwa) {
+  // we're injected into the rendered html code and
+  // must now launch the service worker
+  console.log("start pwa");
+  startPwa();
+} else {
+  // we're called by the bootstrap html to render
+  // the first page
+  console.log("start render");
+  render();
+}

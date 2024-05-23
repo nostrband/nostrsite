@@ -1,7 +1,0 @@
-{
-  "nostr_site": {
-    "name": "sitename",
-    "admin_pubkey": "97fd9c91409d60fc649cdb821ade182fc0dddecc7f82b2820ff7dd9886959fa4",
-    "relays": ["wss://relay.nostr.band"]
-  }
-}

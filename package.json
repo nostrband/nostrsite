@@ -2,29 +2,52 @@
   "name": "nostrsite",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.7.1",
+    "@tryghost/helpers": "^1.1.90",
+    "@tryghost/string": "^0.2.12",
+    "@tryghost/tpl": "^0.1.29",
     "browser-hbs": "file:../browser-hbs",
+    "downsize": "^0.0.8",
+    "jsonpath": "^1.1.1",
+    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
+    "marked": "^12.0.2",
+    "moment-timezone": "^0.5.45",
     "nostr-tools": "^1.17.0",
     "path-browserify": "^1.0.1",
+    "remark": "^15.0.1",
+    "remark-footnotes": "^4.0.1",
+    "unidecode": "^1.0.1",
+    "unist-util-visit": "^5.0.0",
     "workbox-core": "^7.1.0",
-    "workbox-expiration": "^7.1.0",
-    "workbox-precaching": "^7.1.0",
     "workbox-routing": "^7.1.0",
     "workbox-strategies": "^7.1.0"
   },
   "devDependencies": {
+    "@types/jsonpath": "^0.2.4",
+    "@types/lodash": "^4.17.0",
     "@types/path-browserify": "^1.0.2",
+    "@vite-pwa/assets-generator": "^0.2.4",
     "typescript": "^5.4.5",
     "vite": "^5.2.10",
-    "vite-tsconfig-paths": "^4.3.2"
+    "vite-plugin-pwa": "^0.20.0",
+    "vite-tsconfig-paths": "^4.3.2",
+    "workbox-core": "^7.1.0",
+    "workbox-routing": "^7.1.0",
+    "workbox-strategies": "^7.1.0",
+    "workbox-window": "^7.1.0"
+  },
+  "overrides": {
+    "sharp": "0.32.6",
+    "sharp-ico": "0.1.5"
   }
 }

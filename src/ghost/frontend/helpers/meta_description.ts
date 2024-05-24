@@ -3,8 +3,6 @@
 //
 // Page description used for sharing and SEO
 
-import { getRenderer } from "../services/renderer";
-
 // function getDescription(data, root, options = {}) {
 //     const context = root ? root.context : null;
 
@@ -86,8 +84,7 @@ import { getRenderer } from "../services/renderer";
 
 // We use the name meta_description to match the helper for consistency:
 export default function meta_description(options: any) {
-  const { escapeExpression } = getRenderer(options);
-  return escapeExpression(
+  return (
     options.data.site.meta_description || options.data.site.description
   );
 

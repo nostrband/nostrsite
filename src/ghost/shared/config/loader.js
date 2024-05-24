@@ -23,8 +23,8 @@ function loadNconf(options) {
     set: (key, value) => (nconf[key] = value),
     get: (key) => nconf[key],
 
-    url: isDev ? "http://localhost" : "https://test.com",
-    "admin:url": "https://test.com/admin",
+    url: "", //isDev ? "http://localhost" : "https://test.com",
+    "admin:url": "", //"https://test.com/admin",
     slugs: {
       protected: ["ghost", "rss", "amp"],
     },

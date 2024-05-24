@@ -1,11 +1,11 @@
 // # link_class helper
 
-import _ from "lodash";
 import errors from "@tryghost/errors";
 // @ts-ignore
 import tpl from "@tryghost/tpl";
 
 import { getRenderer } from "../services/renderer";
+import has from "lodash/has";
 
 const messages = {
   forIsRequired: 'The {{link_class}} helper requires a for="" attribute.',
@@ -21,7 +21,7 @@ export default function link_class(options: any) {
   options.data = options.data || {};
 
   // If there is no for provided, this is theme dev error, so we throw an error to make this clear.
-  if (!_.has(options.hash, "for")) {
+  if (!has(options.hash, "for")) {
     throw new errors.IncorrectUsageError({
       message: tpl(messages.forIsRequired),
     });

@@ -4,13 +4,26 @@ import { tags, tv } from "./utlis";
 import { nip19 } from "nostr-tools";
 import { Post } from "../nostrsite/types/post";
 import { marked } from "marked";
-import moment from "moment-timezone";
-import { KIND_LONG_NOTE, KIND_PACKAGE, KIND_SITE } from "../consts";
+// import moment from "moment-timezone";
+import { KIND_LONG_NOTE, KIND_NOTE, KIND_PACKAGE, KIND_SITE } from "../consts";
 import { Profile } from "../nostrsite/types/profile";
 import { Author } from "../nostrsite/types/author";
 import { Theme } from "../nostrsite/types/theme";
+import { DateTime } from "luxon";
+// @ts-ignore
+import downsize from "downsize";
+
+function fromUNIX(ts: number | undefined) {
+  return DateTime.fromMillis((ts || 0) * 1000).toISO() || "";
+}
 
 export class NostrParser {
+  private config: Map<string, string> | undefined;
+
+  public setConfig(config: Map<string, string>) {
+    this.config = config;
+  }
+
   public getId(e: NDKEvent) {
     if (e.kind === undefined) return "";
     const isMeta = e.kind === 0 || e.kind === 3;
@@ -99,17 +112,30 @@ export class NostrParser {
       twitter_description: tv(event, "twitter_description"),
       members_support_address: null,
 
-      hashtags: tags(event, "hashtag").map((t) => t[1]),
-
       extensions: tags(event, "x", 5).map((x) => ({
         event_id: x[1],
         relay: x[2],
         package_hash: x[3],
         petname: x[4],
       })),
+
+      config: new Map(),
+      custom: new Map(),
     };
 
+    for (const c of tags(event, "config", 3)) {
+      settings.config.set(c[1], c[2]);
+    }
+
+    for (const c of tags(event, "custom", 3)) {
+      settings.custom.set(c[1], c[2]);
+    }
+
     if (!settings.url?.endsWith("/")) settings.url += "/";
+
+    settings.comments_enabled = this.config?.get("comments_enabled") === "true";
+    settings.recommendations_enabled =
+      this.config?.get("recommendations_enabled") === "true";
 
     // FIXME for testing
     // settings.secondary_navigation = settings.navigation;
@@ -168,28 +194,28 @@ export class NostrParser {
     const id = this.getId(e);
     const post: Post = {
       id,
-      slug: tv(e, "d") || id,
+      slug: tv(e, "slug") || tv(e, "d") || id,
       uuid: e.id,
       url: "",
       title: tv(e, "title"),
       html: await marked.parse(e.content),
-      commend_id: null,
+      comment_id: e.id,
       feature_image: tv(e, "image"),
       feature_image_alt: null,
       feature_image_caption: null,
       featured: false,
       visibility: "public",
-      created_at: moment.unix(e.created_at || 0).format(),
-      updated_at: moment.unix(e.created_at || 0).format(),
-      published_at: moment
-        .unix(parseInt(tv(e, "published_at") || "" + e.created_at))
-        .format(),
+      created_at: fromUNIX(e.created_at),
+      updated_at: fromUNIX(e.created_at),
+      published_at: fromUNIX(
+        parseInt(tv(e, "published_at") || "" + e.created_at)
+      ),
       custom_excerpt: null,
       codeinjection_head: null,
       codeinjection_foot: null,
       custom_template: null,
       canonical_url: null,
-      excerpt: tv(e, "summary"),
+      excerpt: tv(e, "summary") || downsize(e.content, { words: 50 }),
       reading_time: 0,
       access: true,
       og_image: null,
@@ -207,11 +233,87 @@ export class NostrParser {
       authors: [],
       markdown: e.content,
       images: [],
+      links: this.parseTextLinks(e.content),
       event: e,
       show_title_and_feature_image: true,
     };
 
+    post.images = this.parseImages(post);
+    if (post.feature_image) post.images.push(post.feature_image);
+
+    // FIXME config
+    post.og_description = post.links.find((u) => this.isVideoUrl(u)) || null;
+
     return post;
+  }
+
+  public async parseNote(e: NDKEvent) {
+    if (e.kind !== KIND_NOTE) throw new Error("Bad kind: " + e.kind);
+
+    const id = this.getId(e);
+    const post: Post = {
+      id,
+      slug: tv(e, "slug") || id,
+      uuid: e.id,
+      url: "",
+      title: downsize(e.content.trim().split("\n")[0], { words: 20 }),
+      html: await marked.parse(e.content),
+      comment_id: e.id,
+      feature_image: "",
+      feature_image_alt: null,
+      feature_image_caption: null,
+      featured: false,
+      visibility: "public",
+      created_at: fromUNIX(e.created_at),
+      updated_at: fromUNIX(e.created_at),
+      published_at: fromUNIX(
+        parseInt(tv(e, "published_at") || "" + e.created_at)
+      ),
+      custom_excerpt: null,
+      codeinjection_head: null,
+      codeinjection_foot: null,
+      custom_template: null,
+      canonical_url: null,
+      excerpt: downsize(e.content, { words: 50 }),
+      reading_time: 0,
+      access: true,
+      og_image: null,
+      og_title: null,
+      og_description: null,
+      twitter_image: null,
+      twitter_title: null,
+      twitter_description: null,
+      meta_title: null,
+      meta_description: null,
+      email_subject: null,
+      primary_tag: null,
+      tags: [],
+      primary_author: null,
+      authors: [],
+      markdown: e.content,
+      images: [],
+      links: this.parseTextLinks(e.content),
+      event: e,
+      show_title_and_feature_image: true,
+    };
+
+    post.images = this.parseImages(post);
+    if (post.feature_image) post.images.push(post.feature_image);
+
+    post.title = downsize(e.content.trim().split("\n")[0], { words: 20 });
+
+    if (this.getConf("podcast_media_in_og_description") === "true") {
+      post.og_description =
+        post.links.find((u) => this.isVideoUrl(u) || this.isAudioUrl(u)) ||
+        null;
+    }
+
+    return post;
+  }
+
+  private getConf(name: string): string | undefined {
+    if (!this.config) return "";
+    return this.config.get(name);
   }
 
   public parseHashtags(e: NDKEvent): string[] {
@@ -247,13 +349,100 @@ export class NostrParser {
       meta_description: null,
       tour: null,
       last_seen: null,
-      created_at: moment.unix(profile.event.created_at || 0).format(),
-      updated_at: moment.unix(profile.event.created_at || 0).format(),
+      created_at: fromUNIX(profile.event.created_at),
+      updated_at: fromUNIX(profile.event.created_at),
       permissions: [],
       roles: [],
       count: { posts: 0 },
       url: "",
       event: profile.event,
     };
+  }
+
+  private parseMarkdownImages(markdown: string | undefined): string[] {
+    if (!markdown) return [];
+
+    const IMAGE_MD_RX = /!\[(.*)\]\((.+)\)/g;
+    return [
+      ...new Set(
+        [...markdown.matchAll(IMAGE_MD_RX)]
+          .filter((m) => m?.[2])
+          .map((m) => m[2])
+      ),
+    ];
+  }
+
+  private parseTextLinks(text: string): string[] {
+    if (!text) return [];
+    const IMAGE_RX =
+      /(?:(?:https?):\/\/)(?:([-A-Z0-9+&@#/%=~_|$?!:,.]*)|[-A-Z0-9+&@#/%=~_|$?!:,.])*(?:([-A-Z0-9+&@#/%=~_|$?!:,.]*)|[A-Z0-9+&@#/%=~_|$])/gi;
+    return [...new Set([...text.matchAll(IMAGE_RX)].map((m) => m[0]))];
+  }
+
+  private isImageUrl(u: string) {
+    try {
+      const url = new URL(u);
+      const ext = url.pathname.split(".").pop();
+      switch (ext?.toLowerCase()) {
+        case "png":
+        case "svg":
+        case "jpg":
+        case "jpeg":
+        case "gif":
+        case "tif":
+        case "tiff":
+        case "webp":
+          return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  private isVideoUrl(u: string) {
+    try {
+      const url = new URL(u);
+      const ext = url.pathname.split(".").pop();
+      switch (ext?.toLowerCase()) {
+        case "mp4":
+        case "avi":
+        case "mpeg":
+        case "mkv":
+        case "webm":
+        case "ogv":
+          return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  private isAudioUrl(u: string) {
+    try {
+      const url = new URL(u);
+      const ext = url.pathname.split(".").pop();
+      switch (ext?.toLowerCase()) {
+        case "mp3":
+        case "aac":
+        case "ogg":
+        case "wav":
+        case "weba":
+          return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  private parseImages(post: Post): string[] {
+    const images: string[] = [];
+    if (post.feature_image) images.push(post.feature_image);
+
+    // collect images from markdown
+    images.push(...this.parseMarkdownImages(post.markdown));
+
+    // extract from string content
+    const urls = this.parseTextLinks(post.event.content);
+    images.push(...urls.filter((u) => this.isImageUrl(u)));
+
+    // unique
+    return [...new Set(images)];
   }
 }

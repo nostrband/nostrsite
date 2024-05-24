@@ -61,11 +61,12 @@ export interface Site {
   twitter_description: string | null,
   members_support_address: string | null,
 
-  hashtags: string[],
-
   comments_enabled?: boolean;
   recommendations_enabled?: boolean;
 
   extensions: SiteExtension[];
+
+  config: Map<string, string>;
+  custom: Map<string, string>;
 }
 

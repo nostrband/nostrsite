@@ -1,9 +1,9 @@
 // ## Template utils
 
-import _ from "lodash";
 import errors from "@tryghost/errors";
 // @ts-ignore
 import tpl from "@tryghost/tpl";
+import template from "lodash/template";
 
 const messages = {
   templateNotFound: "Template {name} not found.",
@@ -36,11 +36,11 @@ templates.execute = function execute(
   return new hbs.SafeString(partial(context, data));
 };
 
-templates.asset = _.template("<%= source %>?v=<%= version %>");
-templates.link = _.template('<a href="<%= url %>"><%= text %></a>');
-templates.script = _.template(
+templates.asset = template("<%= source %>?v=<%= version %>");
+templates.link = template('<a href="<%= url %>"><%= text %></a>');
+templates.script = template(
   '<script src="<%= source %>?v=<%= version %>"></script>'
 );
-templates.input = _.template(
+templates.input = template(
   '<input class="<%= className %>" type="<%= type %>" name="<%= name %>" <%= extras %> />'
 );

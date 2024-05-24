@@ -2,7 +2,8 @@
 const {config} = require('../services/proxy');
 const {SafeString, localUtils} = require('../services/handlebars');
 
-const _ = require('lodash');
+const size = require('lodash/size');
+const has = require('lodash/has');
 const errors = require('@tryghost/errors');
 const tpl = require('@tryghost/tpl');
 
@@ -32,7 +33,7 @@ module.exports = function link(options) {
     options.data = options.data || {};
 
     // If there is no href provided, this is theme dev error, so we throw an error to make this clear.
-    if (!_.has(options.hash, 'href')) {
+    if (!has(options.hash, 'href')) {
         throw new errors.IncorrectUsageError({
             message: tpl(messages.hrefIsRequired)
         });
@@ -60,7 +61,7 @@ module.exports = function link(options) {
     // Prepare output
     let classString = classes.length > 0 ? `class="${classes.join(' ')}"` : '';
     let hrefString = `href="${href}"`;
-    let attributeString = _.size(attributes) > 0 ? _formatAttrs(attributes) : '';
+    let attributeString = size(attributes) > 0 ? _formatAttrs(attributes) : '';
     let openingTag = `<a ${classString} ${hrefString} ${attributeString}>`;
     let closingTag = `</a>`;
 

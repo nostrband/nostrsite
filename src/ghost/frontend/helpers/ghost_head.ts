@@ -7,8 +7,9 @@
 // @TODO fix this require
 // import cardAssetService from "../services/card-assets";
 
-import _ from "lodash";
 import { getRenderer } from "../services/renderer";
+import findLastIndex from "lodash/findLastIndex";
+import includes from "lodash/includes";
 
 function getMime(url: string) {
   const path = new URL(url).pathname;
@@ -259,6 +260,9 @@ export default async function ghost_head(options: any) {
     // site id for pwa code to function and for crawlers to see
     head.push(`<meta property="nostr:site" content="${site.id}" >`);
 
+    // manifest
+    head.push(`<link rel="manifest" href="/manifest.webmanifest"></head>`);
+
     // jquery is assumed by many themes
     head.push(`
     <script 
@@ -357,7 +361,7 @@ export default async function ghost_head(options: any) {
     // );
 
     // no code injection for amp context!!!
-    if (!_.includes(context, "amp")) {
+    if (!includes(context, "amp")) {
       //   head.push(getMembersHelper(options.data, frontendKey));
       //   head.push(getSearchHelper(frontendKey));
       //   head.push(getAnnouncementBarHelper(options.data));
@@ -404,10 +408,10 @@ export default async function ghost_head(options: any) {
     }
 
     // AMP template has style injected directly because there can only be one <style amp-custom> tag
-    if (options.data.site.accent_color && !_.includes(context, "amp")) {
+    if (options.data.site.accent_color && !includes(context, "amp")) {
       const accentColor = escapeExpression(options.data.site.accent_color);
       const styleTag = `<style>:root {--ghost-accent-color: ${accentColor};}</style>`;
-      const existingScriptIndex = _.findLastIndex(head, (str) =>
+      const existingScriptIndex = findLastIndex(head, (str) =>
         !!str.match(/<\/(style|script)>/)
       );
 

@@ -16,6 +16,8 @@ dist-ssr
 dev-dist
 *.local
 public/theme*
+sample-themes
+test-*.json
 
 # Editor directories and files
 .vscode/*

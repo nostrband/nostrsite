@@ -7,9 +7,14 @@ import errors from "@tryghost/errors";
 import tpl from "@tryghost/tpl";
 // @ts-ignore
 import { slugify } from "@tryghost/string";
-import _ from "lodash";
 import { getRenderer } from "../services/renderer";
 import { templates } from "../services/theme-engine/handlebars/template";
+import isFunction from "lodash/isFunction";
+import isNull from "lodash/isNull";
+import isObject from "lodash/isObject";
+import isString from "lodash/isString";
+import isUndefined from "lodash/isUndefined";
+import merge from "lodash/merge";
 
 const messages = {
   invalidData: "navigation data is not an object or is a function",
@@ -40,7 +45,7 @@ export default function navigation(options: any) {
   const currentUrl = options.data.root.relativeUrl;
   let output;
 
-  if (!_.isObject(navigationData) || _.isFunction(navigationData)) {
+  if (!isObject(navigationData) || isFunction(navigationData)) {
     throw new errors.IncorrectUsageError({
       message: tpl(messages.invalidData),
     });
@@ -48,7 +53,7 @@ export default function navigation(options: any) {
 
   if (
     navigationData.filter(function (e) {
-      return _.isUndefined(e.label) || _.isUndefined(e.url);
+      return isUndefined(e.label) || isUndefined(e.url);
     }).length > 0
   ) {
     throw new errors.IncorrectUsageError({
@@ -60,8 +65,8 @@ export default function navigation(options: any) {
   if (
     navigationData.filter(function (e) {
       return (
-        (!_.isNull(e.label) && !_.isString(e.label)) ||
-        (!_.isNull(e.url) && !_.isString(e.url))
+        (!isNull(e.label) && !isString(e.label)) ||
+        (!isNull(e.url) && !isString(e.url))
       );
     }).length > 0
   ) {
@@ -101,9 +106,9 @@ export default function navigation(options: any) {
   // CASE: The navigation helper should have access to the navigation items at the top level.
   self.navigation = output;
   // CASE: The navigation helper will forward attributes passed to it.
-  _.merge(self, options.hash);
+  merge(self, options.hash);
   const data = createFrame(options.data);
 
-  console.log("navigation data", { data, options })
+  console.log("navigation data", { data, options });
   return templates.execute("navigation", self, { data }, hbs);
 }

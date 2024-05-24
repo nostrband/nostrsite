@@ -8,21 +8,27 @@
   "tags":[
     ["d", "testsite"],
     ["r", "https://testsite.com/"],
-    ["title", "Kat's musings"],
-    ["summary", "A Nostr Site for testing the theme rendering"],
-    ["image", "https://www.adams.es/blogs/alumno/files/2020/11/portada-test.jpg"],
+    ["title", "Citadel Dispatch"],
+    ["summary", "Interactive freedom tech live show -- hosted by ODELL -- Search CITADEL DISPATCH in your favorite podcast app."],
+    ["image", "https://m.primal.net/HqRU.jpg"],
 
-    ["p", "5df413d4c5e5035ff508fd99b38b21ea9a0ac0b9ecc34f3312aba9aa2add4f5b"],
-    ["p", "1bc70a0148b3f316da33fe3c89f23e3e71ac4ff998027ec712b905cd24f6a411"],
-    ["include", "t", "nostr"],
-    ["include", "t", "design"],
-    ["include", "t", "life"],
-    ["include", "t", "Bitcoin"],
-    ["kind", "30023"],
+    ["p", "7f573f55d875ce8edc528edf822949fd2ab9f9c65d914a40225663b0a697be07"],
+    ["include", "*"],
+    ["kind", "1"],
     ["relay", "wss://relay.nostr.band"],
 
     ["z", "pro.npub.v1"],
 
+    ["x", 
+      "7c614bef8134321db5168d9bc8cb9baa3fd9017cfef0ed05c25e01b536ad1c41", 
+      "wss://relay.nostr.band", 
+      "1a13b81c792f221f71bc85f3916710f4230586f51076ea4f755da955436228b6", 
+      "Wave theme"],
+      ["x", 
+      "0b404b54331cc6c1c5dd9e0156a5b4246c0eb7e5fa648c5f05fd447ced38f78a", 
+      "wss://relay.nostr.band", 
+      "3ca6f955bd9e0366599cc4dc5336baf5c3529f238a41dc8cdc770c2737f51165", 
+      "Edge theme"],
     ["x", 
       "36fd14a734f0f390169b3a89c0cdf59f06b622514601fdf7ec8031f236f73630", 
       "wss://relay.nostr.band", 
@@ -44,7 +50,7 @@
       "1bf45c427a0ccb5f590d57d7b20719508563d255f2451a93a5dbedb2c8c72545", 
       "Casper theme"],
 
-    ["icon", "https://cdn.icon-icons.com/icons2/2248/PNG/512/cat_icon_138789.png"],
+    ["icon", "https://m.primal.net/HqRT.jpg"],
     ["logo1", "https://pfp.nostr.build/nostr.build_4fb6accf6b24cdb58be127d9a509c3acd3e859bbe24b5c194b82bf30bc1e511a.jpg"],
     ["lang", "en"],
     ["meta_title", ""],
@@ -56,14 +62,17 @@
     ["twitter_title", ""],
     ["twitter_description", ""],
 
-    ["hashtag", "nostr"],
-    ["hashtag", "design"],
-    ["hashtag", "life"],
-    ["hashtag", "Bitcoin"],
-
     ["nav", "/", "Home"],
     ["nav1", "/about", "About"],
-    ["nav", "/tag/nostr", "Nostr"],
-    ["nav", "/tag/design", "Design"]
+    ["nav1", "/tag/nostr", "Nostr"],
+    ["nav1", "/tag/design", "Design"],
+
+    ["config", "podcast_media_in_og_description", "true"],
+    ["config", "hashtags", "nostr,design,life,Bitcoin"],
+
+    ["custom", "apple_podcasts_link", "https://podcasts.apple.com/us/podcast/citadel-dispatch/id1546393840?uo=4"],
+    ["custom", "google_podcasts_link", ""],
+    ["custom", "spotify_podcasts_link", "https://open.spotify.com/show/2KmZgeZUC1trxOvDvfQefy"],
+    ["custom", "rss_link", "https://serve.podhome.fm/rss/c90e609a-df1e-596a-bd5e-57bcc8aad6cc"]
   ]
 }

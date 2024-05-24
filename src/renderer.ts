@@ -17,6 +17,8 @@ import { theme, theme1, theme2, theme3 } from "./sample-themes";
 
 export class Renderer {
   readonly addr: SiteAddr;
+  public settings?: Site;
+  public theme?: Theme;
   private ndk?: NDK;
   private engine?: NostrSiteEngine;
 
@@ -123,17 +125,19 @@ export class Renderer {
     const settings = parser.parseSite(this.addr, site, profile);
     console.log("settings", settings);
 
+    parser.setConfig(settings.config);
+
     // kinda server-side settings,
     // FIXME must also come from site event!
     const config = loader.loadNconf();
+    config.url = new URL(
+      settings.url || '/',
+      (globalThis.document || self).location.origin,
+    ).href;
 
     const store = new NostrStore(this.ndk!, settings, parser);
 
     this.engine = new NostrSiteEngine(store);
-
-    // FIXME get from settings
-    settings.comments_enabled = false;
-    settings.recommendations_enabled = false;
 
     // do it in parallel to save some latency
     const [themes] = await Promise.all([
@@ -164,6 +168,9 @@ export class Renderer {
     }
 
     console.log("updated settings", settings);
+    this.settings = settings;
+    if (themes.length)
+      this.theme = themes[0];
   }
 
   public async render(path: string) {

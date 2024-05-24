@@ -7,10 +7,10 @@
 // Returns the URL for the current object scope i.e. If inside a post scope will return image permalink
 // `absolute` flag outputs absolute URL, else URL is relative.
 
-import _ from "lodash";
 // @ts-ignore
 import tpl from "@tryghost/tpl";
 import { getRenderer } from "../services/renderer";
+import identity from "lodash/identity";
 
 const messages = {
   attrIsRequired: "Attribute is required e.g. {{img_url feature_image}}",
@@ -100,7 +100,7 @@ export default function img_url(requestedImageUrl: string, options: any) {
   // CASE: only make paths relative if we didn't get a request for an absolute url
   const maybeEnsureRelativePath = !absoluteUrlRequested
     ? ensureRelativePath
-    : _.identity;
+    : identity;
 
   return maybeEnsureRelativePath(
     getImageUrl(getImageWithSize(requestedImageUrl, sizeOptions))

@@ -3,8 +3,6 @@
 //
 // Page title used for sharing and SEO
 
-import { getRenderer } from "../services/renderer";
-
 // function optionalString(test, string) {
 //   if (test) {
 //       return string;
@@ -70,8 +68,7 @@ import { getRenderer } from "../services/renderer";
 
 // We use the name meta_title to match the helper for consistency:
 export default function meta_title(options: any) {
-  const { escapeExpression } = getRenderer(options);
-  return escapeExpression(
+  return (
     options.data.site.meta_title || options.data.site.title
   );
   //    return getMetaDataTitle(this, options.data.root, options);

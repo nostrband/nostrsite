@@ -125,7 +125,7 @@ export class RamStore implements Store {
     const pages = Math.ceil(total / perPage);
     const start = (page - 1) * perPage;
     const count = Math.min(perPage, total - start);
-    const end = start + count + 1;
+    const end = start + count;
 
     const pageResults = results.slice(start, end);
 

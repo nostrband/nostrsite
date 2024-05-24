@@ -1,9 +1,15 @@
 // this is an extract from https://github.com/TryGhost/SDK/blob/main/packages/url-utils/
 
 // Contains all path information to be used throughout the codebase.
-import _ from "lodash";
 import { urlJoin } from "./utils";
-import moment from "moment-timezone";
+// import moment from "moment-timezone";
+import { DateTime } from "luxon";
+import indexOf from "lodash/indexOf";
+import isBoolean from "lodash/isBoolean";
+import isEmpty from "lodash/isEmpty";
+import isObject from "lodash/isObject";
+import isString from "lodash/isString";
+import keys from "lodash/keys";
 
 // similar to Object.assign but will not override defaults if a source value is undefined
 function assignOptions(target: any, ...sources: any[]) {
@@ -53,7 +59,7 @@ export default class UrlUtils {
   getProtectedSlugs() {
     let subDir = this.getSubdir();
 
-    if (!_.isEmpty(subDir)) {
+    if (!isEmpty(subDir)) {
       return this._config.slugs.concat([subDir.split("/").pop()]);
     } else {
       return this._config.slugs;
@@ -101,6 +107,10 @@ export default class UrlUtils {
     return this.urlJoin(base, urlPath);
   }
 
+  absoluteToRelative(url: string) {
+    return url; // stub
+  }
+
   // ## urlFor
   // Synchronous url creation for a given context
   // Can generate a url for a named path and given path.
@@ -130,14 +140,14 @@ export default class UrlUtils {
     };
 
     // Make data properly optional
-    if (_.isBoolean(data)) {
+    if (isBoolean(data)) {
       absolute = data;
       data = null;
     }
 
-    if (_.isObject(context as any) && context.relativeUrl) {
+    if (isObject(context as any) && context.relativeUrl) {
       urlPath = context.relativeUrl;
-    } else if (_.isString(context) && _.indexOf(knownObjects, context) !== -1) {
+    } else if (isString(context) && indexOf(knownObjects, context) !== -1) {
       if (context === "image" && data.image) {
         urlPath = data.image;
         imagePathRe = new RegExp(
@@ -208,8 +218,8 @@ export default class UrlUtils {
         urlPath = apiPath;
       }
     } else if (
-      _.isString(context) &&
-      _.indexOf(_.keys(knownPaths), context) !== -1
+      isString(context) &&
+      indexOf(keys(knownPaths), context) !== -1
     ) {
       // trying to create a url for a named path
       urlPath = knownPaths[context];
@@ -256,19 +266,18 @@ export default class UrlUtils {
   replacePermalink(permalink: string, resource: any, timezone = "UTC") {
     const output = permalink;
     const primaryTagFallback = "all";
-    const publishedAtMoment = moment.tz(
-      resource.published_at || Date.now(),
-      timezone
-    );
-    const permalinkLookUp: any = {
+    const publishedAtMoment = DateTime.fromMillis(
+      resource.published_at || Date.now()).setZone(timezone);
+
+      const permalinkLookUp: any = {
       year: function () {
-        return publishedAtMoment.format("YYYY");
+        return publishedAtMoment.toFormat("yyyy");
       },
       month: function () {
-        return publishedAtMoment.format("MM");
+        return publishedAtMoment.toFormat("MM");
       },
       day: function () {
-        return publishedAtMoment.format("DD");
+        return publishedAtMoment.toFormat("dd");
       },
       author: function () {
         return resource.primary_author.slug;

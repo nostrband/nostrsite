@@ -1,7 +1,7 @@
 // https://stackoverflow.com/a/69190644
 // with my special sause for async and defer
-async function executeScriptElements(containerElement: HTMLElement) {
-  const scriptElements = containerElement.querySelectorAll("script");
+async function executeScriptElements() {
+  const scriptElements = document.querySelectorAll("script");
 
   let deferScripts: {
     scriptElement: HTMLElement;
@@ -44,8 +44,10 @@ async function executeScriptElements(containerElement: HTMLElement) {
       deferScripts.push({ scriptElement, clonedElement, src });
     } else {
       scriptElement.parentNode!.replaceChild(clonedElement, scriptElement);
-      // inline script execute immediately
-      if (src) await new Promise((ok) => clonedElement.addEventListener("load", ok));
+      // inline script execute immediately,
+      // async can execute at any time, no need to wait
+      if (src && !async)
+        await new Promise((ok) => clonedElement.addEventListener("load", ok));
       console.log(Date.now(), "loaded", src);
     }
   }
@@ -57,6 +59,28 @@ async function executeScriptElements(containerElement: HTMLElement) {
     await new Promise((ok) => clonedElement.addEventListener("load", ok));
     console.log(Date.now(), "defer loaded", src);
   }
+}
+
+async function waitStyles() {
+  const links = document.getElementsByTagName("link");
+
+  const promises: Promise<void>[] = [];
+  for (const link of Array.from(links)) {
+    const rel = link.getAttribute("rel");
+    if (rel !== "stylesheet") continue;
+    const src = link.getAttribute("href");
+    console.log(Date.now(), "style", src);
+    if (src)
+      promises.push(
+        new Promise<void>((ok) => {
+          link.onload = () => {
+            console.log(Date.now(), "loaded", src);
+            ok();
+          };
+        })
+      );
+  }
+  return Promise.all(promises);
 }
 
 export async function setHtml(html: string) {
@@ -74,10 +98,13 @@ export async function setHtml(html: string) {
   // "Note: When inserted using the Document.write() method, <script>
   // elements execute (typically synchronously), but when inserted using
   // Element.innerHTML or Element.outerHTML, they do not execute at all."
+  console.log(Date.now(), "html set", html.length);
   document.documentElement.innerHTML = html;
 
-  // so this way we force the <script> elements to execute
-  await executeScriptElements(document.documentElement);
+  // wait for styles and scripts
+  await Promise.all([waitStyles(), executeScriptElements()]);
+
+  console.log(Date.now(), "html done");
 
   // make it seem like the document has loaded
   // to trigger those scripts expecting it

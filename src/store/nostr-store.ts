@@ -2,11 +2,17 @@ import NDK, { NDKEvent, NDKFilter, NDKRelaySet } from "@nostr-dev-kit/ndk";
 import { NostrSiteEngine } from "../nostrsite/nostr-site-engine";
 import { Site } from "../nostrsite/types/site";
 import { RamStore } from "./ram-store";
-import { KIND_LONG_NOTE, KIND_PROFILE, SUPPORTED_KINDS } from "../consts";
+import {
+  KIND_LONG_NOTE,
+  KIND_NOTE,
+  KIND_PROFILE,
+  SUPPORTED_KINDS,
+} from "../consts";
 import { NostrParser } from "../parser/parser";
 import { Tag } from "../nostrsite/types/tag";
 import { recommendations } from "./sample-recommendations";
 import { Profile } from "../nostrsite/types/profile";
+import { Post } from "../nostrsite/types/post";
 
 export class NostrStore extends RamStore {
   private ndk: NDK;
@@ -21,7 +27,6 @@ export class NostrStore extends RamStore {
   }
 
   public async load() {
-
     this.recommendations = recommendations;
 
     const promises: Promise<void>[] = [];
@@ -51,32 +56,23 @@ export class NostrStore extends RamStore {
   }
 
   public async prepare(engine: NostrSiteEngine) {
-    this.posts.forEach(post => {
+    this.posts.forEach((post) => {
       post.url = engine.getMetaDataUrl(post);
-    })
-    this.tags.forEach(tag => {
+    });
+    this.tags.forEach((tag) => {
       tag.url = engine.getMetaDataUrl(tag);
     });
-    this.authors.forEach(author => {
+    this.authors.forEach((author) => {
       author.url = engine.getMetaDataUrl(author);
     });
   }
 
-  private async parseLongNote(e: NDKEvent) {
-    const post = await this.parser.parseLongNote(e);
-
-    // make sure it has unique slug
-    if (this.posts.find((p) => p.slug === post.slug)) post.slug = post.id;
-
-    console.log("post", post);
+  private async parsePostTags(post: Post, e: NDKEvent) {
+    const allowed = (this.settings.config.get("hashtags") || "").split(",");
 
     // ensure tags
     for (const tagName of this.parser.parseHashtags(e)) {
-      if (
-        this.settings.hashtags.length &&
-        !this.settings.hashtags.includes(tagName)
-      )
-        continue;
+      if (allowed.length && !allowed.includes(tagName)) continue;
 
       const existingTag = this.tags.find((t) => t.id === tagName);
       const tag: Tag = existingTag || {
@@ -100,27 +96,33 @@ export class NostrStore extends RamStore {
       post.tags.push(tag);
       if (!post.primary_tag) post.primary_tag = tag;
     }
-
-    // collect images
-    const IMAGE_RX = /!\[(.*)\]\((.+)\)/g;
-    if (post.feature_image) post.images.push(post.feature_image);
-    for (const m of post.markdown.matchAll(IMAGE_RX)) {
-      if (m?.[2]) post.images.push(m[2]);
-    }
-    // unique
-    post.images = [...new Set(post.images)];
-
-    // put to local storage
-    this.posts.push(post);
   }
 
   private async parseEvents(events: NDKEvent[]) {
     for (const e of events) {
+      let post: Post | undefined;
       switch (e.kind) {
         case KIND_LONG_NOTE:
-          await this.parseLongNote(e);
+          post = await this.parser.parseLongNote(e);
           break;
+        case KIND_NOTE:
+          post = await this.parser.parseNote(e);
+          break;
+        default:
+          console.warn("invalid kind", e);
       }
+      if (!post) continue;
+
+      // make sure it has unique slug
+      if (this.posts.find((p) => p.slug === post!.slug)) post.slug = post.id;
+
+      // hashtags
+      this.parsePostTags(post, e);
+
+      // put to local storage
+      this.posts.push(post);
+
+      console.log("post", post);
     }
   }
 
@@ -254,7 +256,10 @@ export class NostrStore extends RamStore {
         addAll(tag);
       }
     }
-    if (!filters.length) return;
+    if (!filters.length) {
+      console.warn("Empty filters for 'include' tags");
+      return;
+    }
 
     // FIXME implement proper relay selection logic
     const relays = this.settings.include_relays ||
@@ -276,6 +281,6 @@ export class NostrStore extends RamStore {
   }
 
   public getProfile(pubkey: string): Profile | undefined {
-    return this.profiles.find(p => p.pubkey === pubkey);
+    return this.profiles.find((p) => p.pubkey === pubkey);
   }
 }

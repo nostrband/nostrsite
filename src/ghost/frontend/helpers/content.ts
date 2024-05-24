@@ -12,7 +12,8 @@
 
 // @ts-ignore
 import downsize from "downsize";
-import _ from "lodash";
+import merge from "lodash/merge";
+import isUndefined from "lodash/isUndefined";
 import { getRenderer } from "../services/renderer";
 
 function restrictedCta(options: any) {
@@ -25,7 +26,7 @@ function restrictedCta(options: any) {
   // @ts-ignore
   const self: any = this;
 
-  _.merge(self, {
+  merge(self, {
     // @deprecated in Ghost 5.16.1 - not documented & removed from core templates
     accentColor: options.data.site && options.data.site.accent_color,
   });
@@ -55,7 +56,7 @@ export default function content(options: any = {}) {
     self.html = "";
   }
 
-  if (!_.isUndefined(self.access) && !self.access) {
+  if (!isUndefined(self.access) && !self.access) {
     return restrictedCta.apply(self, options);
   }
 

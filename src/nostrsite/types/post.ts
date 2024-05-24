@@ -9,7 +9,7 @@ export interface Post {
   url: string;
   title: string | null;
   html: string | null;
-  commend_id: string | null;
+  comment_id: string | null;
   feature_image: string | null;
   feature_image_alt: null;
   feature_image_caption: null;
@@ -41,7 +41,10 @@ export interface Post {
   authors: Author[];
 
   // source content in markdown syntax
-  markdown: string;
+  markdown?: string;
+
+  // all urls
+  links: string[];
 
   // all image urls
   images: string[];

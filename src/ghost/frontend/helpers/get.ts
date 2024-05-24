@@ -6,8 +6,10 @@
 import tpl from "@tryghost/tpl";
 import jsonpath from "jsonpath";
 
-import _ from "lodash";
 import { getRenderer } from "../services/renderer";
+import isDate from "lodash/isDate";
+import isString from "lodash/isString";
+import omit from "lodash/omit";
 
 const messages = {
   mustBeCalledAsBlock:
@@ -49,7 +51,7 @@ function resolvePaths(globals: any, data: any, value: string) {
 
     // Handle the case where the single data property we return is a Date
     // Data.toString() is not DB compatible, so use `toISOString()` instead
-    if (_.isDate(result[0])) {
+    if (isDate(result[0])) {
       result[0] = result[0].toISOString();
     }
 
@@ -69,7 +71,7 @@ function resolvePaths(globals: any, data: any, value: string) {
  * @returns {*}
  */
 function parseOptions(config: any, globals: any, data: any, options: any) {
-  if (_.isString(options.filter)) {
+  if (isString(options.filter)) {
     options.filter = resolvePaths(globals, data, options.filter);
   }
 
@@ -77,7 +79,7 @@ function parseOptions(config: any, globals: any, data: any, options: any) {
     if (config.get("getHelperLimitAllMax"))
       options.limit = config.get("getHelperLimitAllMax");
     else
-      options.limit = undefined;
+      options.limit = 20;
   }
 
   return options;
@@ -114,7 +116,7 @@ export default async function get(resource: string, options: any) {
 
   const start = Date.now();
   const data = createFrame(options.data);
-  const globals = _.omit(data, ["_parent", "root"]);
+  const globals = omit(data, ["_parent", "root"]);
 
   let apiOptions = options.hash;
 

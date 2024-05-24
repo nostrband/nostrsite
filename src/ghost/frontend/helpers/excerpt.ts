@@ -5,8 +5,10 @@
 //
 // Defaults to words="50"
 
-import _ from "lodash";
+import escape from "lodash/escape";
 import { getRenderer } from "../services/renderer";
+import reduce from "lodash/reduce";
+import isEmpty from "lodash/isEmpty";
 
 export default function excerpt(options: any) {
   const { SafeString, metaData } = getRenderer(options);
@@ -27,9 +29,9 @@ export default function excerpt(options: any) {
     excerptText = "";
   }
 
-  excerptText = _.escape(excerptText);
+  excerptText = escape(excerptText);
 
-  truncateOptions = _.reduce(
+  truncateOptions = reduce(
     truncateOptions,
     (_truncateOptions: any, value, key) => {
       if (["words", "characters"].includes(key)) {
@@ -41,7 +43,7 @@ export default function excerpt(options: any) {
   );
 
   // For custom excerpts, make sure we truncate them only based on length
-  if (!_.isEmpty(self.custom_excerpt)) {
+  if (!isEmpty(self.custom_excerpt)) {
     truncateOptions.characters = excerptText.length; // length is expanded by use of escaped characters
     if (truncateOptions.words) {
       delete truncateOptions.words;

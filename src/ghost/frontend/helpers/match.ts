@@ -1,8 +1,10 @@
 // @ts-ignore
 import tpl from "@tryghost/tpl";
 
-import _ from "lodash";
 import { getRenderer } from "../services/renderer";
+import has from "lodash/has";
+import isEmpty from "lodash/isEmpty";
+import isFunction from "lodash/isFunction";
 
 const messages = {
   invalidAttribute: "Invalid or no attribute given to match helper",
@@ -23,7 +25,7 @@ function isEmptyValue(value: any) {
 }
 
 const handleConditional = (conditional: any, options: any) => {
-  if (_.isFunction(conditional)) {
+  if (isFunction(conditional)) {
     conditional = conditional.call(this);
   }
 
@@ -75,10 +77,10 @@ export default function match(...attrs: any[]) {
 
   const { SafeString } = getRenderer(options);
 
-  const isBlock = _.has(options, "fn");
+  const isBlock = has(options, "fn");
   let result;
 
-  if (_.isEmpty(attrs)) {
+  if (isEmpty(attrs)) {
     console.warn(tpl(messages.invalidAttribute));
     return;
   }

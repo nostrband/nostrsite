@@ -6,7 +6,17 @@
 
 // @ts-ignore
 import tpl from "@tryghost/tpl";
-import _ from "lodash";
+import ldHas from "lodash/has";
+import filter from "lodash/filter"
+import findIndex from "lodash/findIndex";
+import get from "lodash/get";
+import includes from "lodash/includes";
+import isEmpty from "lodash/isEmpty";
+import map from "lodash/map";
+import pick from "lodash/pick";
+import some from "lodash/some";
+
+
 const validAttrs = [
   "tag",
   "author",
@@ -24,7 +34,7 @@ const messages = {
 };
 
 function handleCount(ctxAttr: string, data: any[]) {
-  if (!data || !_.isFinite(data.length)) {
+  if (!data || !isFinite(data.length)) {
     return false;
   }
   let count;
@@ -52,7 +62,7 @@ function evaluateTagList(expr: string, tags: string[]) {
     .reduce(function (p, c) {
       return (
         p ||
-        _.findIndex(tags, function (item: string) {
+        findIndex(tags, function (item: string) {
           // Escape regex special characters
           item = item.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
           const rx = new RegExp("^" + item + "$", "i");
@@ -71,7 +81,7 @@ function handleTag(data: any, attrs: any) {
     return handleCount(attrs.tag, data.tags);
   }
 
-  return evaluateTagList(attrs.tag, _.map(data.tags, "name")) || false;
+  return evaluateTagList(attrs.tag, map(data.tags, "name")) || false;
 }
 
 function evaluateAuthorList(expr: string, authors: any) {
@@ -79,8 +89,8 @@ function evaluateAuthorList(expr: string, authors: any) {
     return v.trim().toLocaleLowerCase();
   });
 
-  return _.filter(authors, (author) => {
-    return _.includes(authorList, author.name.toLocaleLowerCase());
+  return filter(authors, (author) => {
+    return includes(authorList, author.name.toLocaleLowerCase());
   }).length;
 }
 
@@ -134,11 +144,11 @@ function evaluateList(type: string, expr: string, obj: any, data: any) {
       [type](function (prop) {
         if (prop.match(/^@/)) {
           return (
-            _.has(data, prop.replace(/@/, "")) &&
-            !_.isEmpty(_.get(data, prop.replace(/@/, "")))
+            ldHas(data, prop.replace(/@/, "")) &&
+            !isEmpty(get(data, prop.replace(/@/, "")))
           );
         } else {
-          return _.has(obj, prop) && !_.isEmpty(_.get(obj, prop));
+          return ldHas(obj, prop) && !isEmpty(get(obj, prop));
         }
       })
   );
@@ -151,8 +161,8 @@ export default function has(options: any) {
 
   // @ts-ignore
   const self: any = this;
-  const attrs = _.pick(options.hash, validAttrs);
-  const data = _.pick(options.data, ["site", "config", "labs"]);
+  const attrs = pick(options.hash, validAttrs);
+  const data = pick(options.data, ["site", "config", "labs"]);
 
   const checks: any = {
     tag: function () {
@@ -207,12 +217,12 @@ export default function has(options: any) {
 
   let result;
 
-  if (_.isEmpty(attrs)) {
+  if (isEmpty(attrs)) {
     console.warn(tpl(messages.invalidAttribute));
     return;
   }
 
-  result = _.some(attrs, function (_, attr) {
+  result = some(attrs, function (_, attr) {
     return checks[attr]();
   });
 

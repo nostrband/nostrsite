@@ -1,5 +1,4 @@
 import path from "path-browserify";
-import _ from "lodash";
 // @ts-ignore
 import BrowserHbs from "browser-hbs";
 
@@ -28,6 +27,7 @@ import {
   DEFAULT_PARTIALS,
   DEFAULT_PARTIALS_DIR_NAME,
 } from "./partials/default-partials";
+import merge from "lodash/merge";
 
 const DEFAULT_POSTS_PER_PAGE = 6;
 
@@ -137,6 +137,14 @@ export class NostrSiteEngine {
 
     urlHelpers.bindAll(cfg);
 
+    const custom: any = {
+      ...this.theme.custom
+    };
+    for (const [k, v] of settings.custom.entries()) {
+      custom[k] = v;
+    }
+    console.log("custom", custom);
+
     const renderer = {
       SafeString: this.hbs.SafeString,
       escapeExpression: this.hbs.handlebars.Utils.escapeExpression,
@@ -168,7 +176,7 @@ export class NostrSiteEngine {
         site: this.settings,
         labs: {},
         config: this.theme.config,
-        custom: this.theme.custom,
+        custom,
         renderer,
       },
     });
@@ -213,7 +221,7 @@ export class NostrSiteEngine {
     console.log("locals", { locals, localTemplateOptions });
     this.hbs.updateLocalTemplateOptions(
       locals,
-      _.merge({}, localTemplateOptions, {
+      merge({}, localTemplateOptions, {
         data: {
           member: member,
           site: siteData,

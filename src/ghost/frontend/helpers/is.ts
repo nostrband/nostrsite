@@ -4,7 +4,8 @@
 
 // @ts-ignore
 import tpl from "@tryghost/tpl";
-import _ from "lodash";
+import includes from "lodash/includes";
+import isString from "lodash/isString";
 
 const messages = {
   invalidAttribute: "Invalid or no attribute given to is helper",
@@ -15,7 +16,7 @@ export default function is(context: string, options: any) {
 
   const currentContext = options.data.root.context;
 
-  if (!_.isString(context)) {
+  if (!isString(context)) {
     console.warn(tpl(messages.invalidAttribute));
     return;
   }
@@ -27,7 +28,7 @@ export default function is(context: string, options: any) {
         return v.trim();
       })
       .reduce(function (p, c) {
-        return p || _.includes(currentContext, c);
+        return p || includes(currentContext, c);
       }, false);
   }
 

@@ -1,15 +1,58 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <!-- important -->
-    <meta charset="UTF-8" />
 
-    <!-- site addr -->
-    <meta property="nostr:site" content="naddr1qqy8getnw3ekjar9qgs0jguk6age989y6efdf27n5xae528jwgcvw48k5wy8q5hayel609srqsqqqaesqyt8wumn8ghj7un9d3shjtnwdaehgu3wvfskueqwamcrx" />
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  </head>
-  <body>
-    <script type="module" src="/src/index.ts"></script>
-  </body>
+<head>
+  <!-- important -->
+  <meta charset="UTF-8" />
+
+  <!-- site addr -->
+  <meta property="nostr:site"
+    content="naddr1qqy8getnw3ekjar9qgs0jguk6age989y6efdf27n5xae528jwgcvw48k5wy8q5hayel609srqsqqqaesqyt8wumn8ghj7un9d3shjtnwdaehgu3wvfskueqwamcrx" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body>
+  <section id="__nostr_site_loading_modal">
+    <div class="loader"></div>
+  </section>
+  <style>
+    #__nostr_site_loading_modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background-color: #fff;
+      z-index: 1000000;
+      display: block;
+    }
+
+    #__nostr_site_loading_modal .loader {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #bbb;
+      border-bottom-color: transparent;
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+    }
+
+    @keyframes rotation {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+  <script type="module" src="/src/index.ts"></script>
+</body>
+
 </html>

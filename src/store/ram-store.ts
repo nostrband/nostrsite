@@ -19,8 +19,20 @@ export class RamStore implements Store {
 
   constructor() {}
 
-  public get(slugId: string, type?: string): Promise<StoreObject | undefined> {
-    return Promise.resolve(this.getSync(slugId, type));
+  protected async fetchObject(
+    slugId: string,
+    type?: string
+  ): Promise<StoreObject | undefined> {
+    throw new Error("Store fetch not implemented " + slugId + " type " + type);
+  }
+
+  public async get(slugId: string, type?: string): Promise<StoreObject | undefined> {
+    let object = this.getSync(slugId, type);
+    if (!object) {
+      await this.fetchObject(slugId, type);
+      object = this.getSync(slugId, type);
+    }
+    return Promise.resolve(object);
   }
 
   public getUrl(id: string, type?: string) {
@@ -54,6 +66,9 @@ export class RamStore implements Store {
     const { type } = req;
     const slugId = req.id || req.slug || undefined;
     console.log("list req", req);
+
+    const relatedNoteId = req.filter?.match(/\+id\:\-(.*)+/)?.[1];
+    console.log("relatedNoteId", relatedNoteId);
 
     const results = [];
     if (slugId) {
@@ -96,7 +111,8 @@ export class RamStore implements Store {
                 (!authors.length ||
                   p.authors.find(
                     (a) => authors.includes(a.slug) || authors.includes(a.id)
-                  ))
+                  )) &&
+                (!relatedNoteId || p.id !== relatedNoteId)
             )
           );
           break;
@@ -123,8 +139,14 @@ export class RamStore implements Store {
     const perPage = Math.min(total, req.limit || total);
     const page = req.page && req.page > 0 ? req.page : 1;
     const pages = Math.ceil(total / perPage);
-    const start = (page - 1) * perPage;
+    let start = (page - 1) * perPage;
     const count = Math.min(perPage, total - start);
+
+    if (type === "posts" && relatedNoteId && count < total) {
+      const relatedIndex = this.posts.findIndex((p) => p.id === relatedNoteId);
+      start = Math.max(0, relatedIndex - Math.ceil(count / 2));
+    }
+
     const end = start + count;
 
     const pageResults = results.slice(start, end);
@@ -134,9 +156,9 @@ export class RamStore implements Store {
         total,
         page,
         pages,
-        //   "limit": 2,
-        //   "next": null,
-        //   "prev": null
+        limit: perPage,
+        prev: page > 1,
+        next: end < total,
       },
     };
 

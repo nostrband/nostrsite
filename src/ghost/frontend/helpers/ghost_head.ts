@@ -198,7 +198,7 @@ export default async function ghost_head(options: any) {
   // eslint-disable-line camelcase
   // debug('begin');
 
-  const { escapeExpression, SafeString } = getRenderer(options);
+  const { escapeExpression, SafeString, urlUtils } = getRenderer(options);
 
   // FIXME if bad url - get that from root data and don't render the meta
   // if server error page do nothing
@@ -279,6 +279,21 @@ export default async function ghost_head(options: any) {
          <link rel="apple-touch-icon" href="${site.icon}">
          <meta name="theme-color" content="#ffffff">
          `
+      );
+    }
+
+    const pagination = dataRoot.pagination;
+    const paginationUrl = (next: boolean) => {
+      return urlUtils.createUrl(`/page/${pagination.page + (next ? 1 : -1)}`);
+    }
+    if (pagination.prev) {
+      head.push(
+        '<link rel="prev" href="' + escapeExpression(paginationUrl(false)) + '">'
+      );
+    }
+    if (pagination.next) {
+      head.push(
+        '<link rel="next" href="' + escapeExpression(paginationUrl(true)) + '">'
       );
     }
 
@@ -370,7 +385,6 @@ export default async function ghost_head(options: any) {
       //   } catch (err) {
       //     console.warn(err);
       //   }
-
       // @TODO do this in a more "frameworky" way
       //   if (cardAssetService.hasFile("js")) {
       //     head.push(
@@ -384,7 +398,6 @@ export default async function ghost_head(options: any) {
       //       )}">`
       //     );
       //   }
-
       //   if (settingsCache.get("comments_enabled") !== "off") {
       //     head.push(
       //       `<script defer src="${getAssetUrl(
@@ -394,7 +407,6 @@ export default async function ghost_head(options: any) {
       //       )}members/api/comments/counts/"></script>`
       //     );
       //   }
-
       //   if (
       //     settingsCache.get("members_enabled") &&
       //     settingsCache.get("members_track_sources")
@@ -411,8 +423,9 @@ export default async function ghost_head(options: any) {
     if (options.data.site.accent_color && !includes(context, "amp")) {
       const accentColor = escapeExpression(options.data.site.accent_color);
       const styleTag = `<style>:root {--ghost-accent-color: ${accentColor};}</style>`;
-      const existingScriptIndex = findLastIndex(head, (str) =>
-        !!str.match(/<\/(style|script)>/)
+      const existingScriptIndex = findLastIndex(
+        head,
+        (str) => !!str.match(/<\/(style|script)>/)
       );
 
       if (existingScriptIndex !== -1) {

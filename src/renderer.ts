@@ -110,7 +110,7 @@ export class Renderer {
     return themes;
   }
 
-  public async start() {
+  public async start(loadAll: boolean = false) {
     // ndk connect to site relays
     await this.connect();
 
@@ -142,7 +142,7 @@ export class Renderer {
     // do it in parallel to save some latency
     const [themes] = await Promise.all([
       await this.fetchThemes(settings, parser),
-      await store.load(),
+      await store.load(loadAll),
     ]);
 
     // now we have everything needed to init the engine

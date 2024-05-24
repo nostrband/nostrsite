@@ -13,4 +13,5 @@ export interface Context {
   tag?: Tag;
   author?: Author;
   pagination?: Pagination;
+  blossomAssets: string[];
 }

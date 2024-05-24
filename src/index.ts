@@ -48,8 +48,8 @@ async function render() {
   await renderer.start();
 
   // render using hbs and replace document.html
-  const html = await renderer.render(document.location.pathname);
-  setHtml(html);
+  const { result } = await renderer.render(document.location.pathname);
+  setHtml(result);
 }
 
 async function startPwa() {

@@ -13,6 +13,8 @@ import { Tag } from "../nostrsite/types/tag";
 import { recommendations } from "./sample-recommendations";
 import { Profile } from "../nostrsite/types/profile";
 import { Post } from "../nostrsite/types/post";
+import { StoreObject } from "../nostrsite/types/store";
+import { nip19 } from "nostr-tools";
 
 export class NostrStore extends RamStore {
   private ndk: NDK;
@@ -26,17 +28,17 @@ export class NostrStore extends RamStore {
     this.parser = parser;
   }
 
-  public async load() {
+  public async load(full: boolean = false) {
     this.recommendations = recommendations;
 
     const promises: Promise<void>[] = [];
 
     if (this.settings.include_all || !!this.settings.include_tags?.length) {
-      promises.push(this.fetchByFilter());
+      promises.push(this.fetchByFilter(full));
     }
 
     if (this.settings.include_manual) {
-      promises.push(this.fetchManual());
+      promises.push(this.fetchManual(full));
     }
 
     // FIXME
@@ -106,7 +108,11 @@ export class NostrStore extends RamStore {
           post = await this.parser.parseLongNote(e);
           break;
         case KIND_NOTE:
-          post = await this.parser.parseNote(e);
+          if (e.tags.find((t) => t.length >= 2 && t[0] === "e")) {
+            console.log("skip reply event", e);
+          } else {
+            post = await this.parser.parseNote(e);
+          }
           break;
         default:
           console.warn("invalid kind", e);
@@ -189,6 +195,58 @@ export class NostrStore extends RamStore {
     }
   }
 
+  protected async fetchObject(
+    slugId: string,
+    objectType?: string
+  ): Promise<StoreObject | undefined> {
+    console.log("fetchObject", slugId, objectType);
+
+    const f: NDKFilter = {
+      authors: this.settings.contributor_pubkeys,
+      limit: 1,
+    };
+
+    switch (objectType) {
+      case "posts":
+        f.kinds = SUPPORTED_KINDS;
+        break;
+      case "tags":
+        // FIXME fetch tag object?
+        return undefined;
+      case "authors":
+        // FIXME fetch profile object?
+        return undefined;
+    }
+
+    try {
+      const { type, data } = nip19.decode(slugId);
+      switch (type) {
+        case "naddr":
+          if (this.settings.contributor_pubkeys!.includes(data.pubkey))
+            return undefined;
+          f["#d"] = [data.identifier];
+          break;
+        case "nevent":
+          f.ids = [data.id];
+          break;
+        case "note":
+          f.ids = [data];
+          break;
+        case "nprofile":
+        case "npub":
+          return undefined;
+      }
+    } catch {
+      f["#d"] = [slugId];
+    }
+
+    const event = await this.ndk.fetchEvent(f);
+    console.log("fetchObject got", slugId, objectType, event);
+    if (!event) return undefined;
+
+    await this.parseEvents([event]);
+  }
+
   private async fetchProfiles(pubkeys: string[]) {
     const relays = [
       ...(this.settings.include_relays || []),
@@ -218,13 +276,13 @@ export class NostrStore extends RamStore {
     }
   }
 
-  private async fetchByFilter() {
+  private async fetchByFilter(full: boolean) {
     const filters: NDKFilter[] = [];
     const add = (kind: number, tag?: { tag: string; value: string }) => {
       const f: NDKFilter = {
         authors: this.settings.contributor_pubkeys,
         kinds: [kind],
-        limit: 100,
+        limit: full ? 1000 : 50,
       };
       if (tag) {
         // @ts-ignore
@@ -276,7 +334,7 @@ export class NostrStore extends RamStore {
     await this.parseEvents([...events]);
   }
 
-  private async fetchManual() {
+  private async fetchManual(_: boolean) {
     // FIXME implement
   }
 

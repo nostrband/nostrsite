@@ -239,7 +239,8 @@ export class NostrParser {
     };
 
     post.images = this.parseImages(post);
-    if (post.feature_image) post.images.push(post.feature_image);
+    if (!post.feature_image && post.images.length)
+      post.feature_image = post.images[0];
 
     // FIXME config
     post.og_description = post.links.find((u) => this.isVideoUrl(u)) || null;
@@ -256,7 +257,7 @@ export class NostrParser {
       slug: tv(e, "slug") || id,
       uuid: e.id,
       url: "",
-      title: downsize(e.content.trim().split("\n")[0], { words: 20 }),
+      title: downsize(e.content.trim().split("\n")[0], { words: 10 }),
       html: await marked.parse(e.content),
       comment_id: e.id,
       feature_image: "",
@@ -297,10 +298,12 @@ export class NostrParser {
       show_title_and_feature_image: true,
     };
 
-    post.images = this.parseImages(post);
-    if (post.feature_image) post.images.push(post.feature_image);
+    if (e.content.trim() === post.title?.trim())
+      post.title = null;
 
-    post.title = downsize(e.content.trim().split("\n")[0], { words: 20 });
+    post.images = this.parseImages(post);
+    if (!post.feature_image && post.images.length)
+      post.feature_image = post.images[0];
 
     if (this.getConf("podcast_media_in_og_description") === "true") {
       post.og_description =

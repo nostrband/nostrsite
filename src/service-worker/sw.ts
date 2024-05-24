@@ -29,33 +29,55 @@ async function startRenderer(addr: SiteAddr) {
   }
   console.log("sw starting renderer", addr);
   renderer = new Renderer(addr);
-  await renderer.start();
+  await renderer.start(true); // load all notes in sw
 
   if (renderer.theme) {
-    console.log("sw caching theme", renderer.theme.id)
+    console.log("sw caching theme", renderer.theme.id);
     const cache = await caches.open("themes");
-    await cache.addAll(renderer.theme.entries.map(e => e.url));
+    await cache.addAll(renderer.theme.entries.map((e) => e.url));
   }
 }
 
-// sw-side rendering
-registerRoute(
-  new NavigationRoute(async (options: RouteHandlerCallbackOptions) => {
-    console.log("sw fetch options", options, renderer);
-    if (!renderer) return new NetworkOnly().handle(options);
+async function renderHandler(options: RouteHandlerCallbackOptions) {
+  console.log("sw fetch options", options, renderer);
+  if (!renderer) return new NetworkOnly().handle(options);
 
-    const { url } = options;
-    const html = await renderer.render(url.pathname);
-    console.log("sw rendered", url.pathname);
-    return new Response(html, {
-      status: 200,
-      statusText: "OK",
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-      },
-    });
-  })
-);
+  const { url } = options;
+  const { result, context } = await renderer.render(url.pathname);
+  console.log("sw rendered", url.pathname);
+
+  // put all blossom assets into the cache
+  caches.open("blossom").then((cache) => {
+    // caching blossom stuff
+    console.log("sw cache blossom assets", context.blossomAssets);
+    cache.addAll(context.blossomAssets);
+  });
+
+  return new Response(result, {
+    status: 200,
+    statusText: "OK",
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+    },
+  });
+}
+
+// sw-side rendering
+registerRoute(new NavigationRoute(renderHandler));
+
+// ghost infinite scrolling
+registerRoute(({ request }) => {
+  const url = new URL(request.url);
+  if (
+    request.destination === "" &&
+    request.mode === "cors" &&
+    url.origin === self.location.origin
+  ) {
+    console.log("sw pagination request", request);
+    return true;
+  }
+  return false;
+}, renderHandler);
 
 function isBlossom(u: string) {
   const url = new URL(u);
@@ -67,28 +89,51 @@ function isBlossom(u: string) {
   return true;
 }
 
-registerRoute(
-  ({ request }) => {
-    console.log("sw request", request);
-    if (
-      isBlossom(request.url) &&
-      (request.destination === "style" || request.destination === "script")
-    ) {
-      console.log("sw cache first", request.url);
-      return true;
-    }
-    return false;
-  },
-  new CacheFirst({
-    cacheName: "themes",
+function fromBlossomCache(cacheName: string) {
+  return new CacheFirst({
+    cacheName,
     fetchOptions: {
       // some blossom servers don't implement etag etc, but
       // since we know files are read-only we can be sure to
       // force the use of cache here.
       cache: "force-cache",
-    }
-  })
-);
+    },
+  });
+}
+
+// theme assets
+registerRoute(({ request }) => {
+  if (
+    isBlossom(request.url) &&
+    (request.destination === "style" || request.destination === "script")
+  ) {
+    console.log("sw theme request", request.url);
+    return true;
+  }
+  return false;
+}, fromBlossomCache("themes"));
+
+// blossom images
+registerRoute(({ request }) => {
+  if (isBlossom(request.url) && request.destination === "image") {
+    console.log("sw image request", request.url);
+    return true;
+  }
+  return false;
+}, fromBlossomCache("blossom"));
+
+// blossom other
+registerRoute(({ request }) => {
+  if (isBlossom(request.url)) {
+    console.log("sw blossom request", request);
+  }
+}, fromBlossomCache("blossom"));
+
+// other other
+registerRoute(({ request }) => {
+  console.log("sw other request", request);
+}, fromBlossomCache("main"));
+
 
 self.addEventListener("message", (event) => {
   console.log("sw on message", event.data);

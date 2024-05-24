@@ -28,8 +28,14 @@ import {
   DEFAULT_PARTIALS_DIR_NAME,
 } from "./partials/default-partials";
 import merge from "lodash/merge";
+import toNumber from "lodash/toNumber";
 
 const DEFAULT_POSTS_PER_PAGE = 6;
+
+function ensureNumber(v: any | undefined): number | undefined {
+  if (v === undefined) return undefined;
+  return toNumber(v);
+}
 
 export class NostrSiteEngine {
   private readonly hbs;
@@ -44,6 +50,9 @@ export class NostrSiteEngine {
 
   private urlService?: UrlService;
   private metaData?: MetaData;
+
+  private config: any = {};
+  private custom: any = {};
 
   constructor(store: Store) {
     this.store = store;
@@ -117,9 +126,9 @@ export class NostrSiteEngine {
     const partialsDir: any = {};
 
     // only include defaults if the theme doesn't provide them
-    partialsDir[`/${DEFAULT_PARTIALS_DIR_NAME}/`] = Object.keys(DEFAULT_PARTIALS).filter(
-      (p) => !this.theme!.partials.includes(p)
-    );
+    partialsDir[`/${DEFAULT_PARTIALS_DIR_NAME}/`] = Object.keys(
+      DEFAULT_PARTIALS
+    ).filter((p) => !this.theme!.partials.includes(p));
 
     // theme partials
     partialsDir[path.join(this.theme.dir, "partials/")] = this.theme.partials;
@@ -137,13 +146,21 @@ export class NostrSiteEngine {
 
     urlHelpers.bindAll(cfg);
 
-    const custom: any = {
-      ...this.theme.custom
+    this.config = {
+      ...this.theme.config,
+    };
+    for (const [k, v] of settings.config.entries()) {
+      this.config[k] = v;
+    }
+    console.log("config", this.config);
+
+    this.custom = {
+      ...this.theme.custom,
     };
     for (const [k, v] of settings.custom.entries()) {
-      custom[k] = v;
+      this.custom[k] = v;
     }
-    console.log("custom", custom);
+    console.log("custom", this.custom);
 
     const renderer = {
       SafeString: this.hbs.SafeString,
@@ -175,8 +192,8 @@ export class NostrSiteEngine {
       data: {
         site: this.settings,
         labs: {},
-        config: this.theme.config,
-        custom,
+        config: this.config,
+        custom: this.custom,
         renderer,
       },
     });
@@ -232,10 +249,12 @@ export class NostrSiteEngine {
   }
 
   private async loadContextData(route: Route): Promise<Context> {
-    const limit = this.theme?.config.posts_per_page || DEFAULT_POSTS_PER_PAGE;
+    const limit =
+      ensureNumber(this.config.posts_per_page) || DEFAULT_POSTS_PER_PAGE;
 
     const data: Context = {
       context: route.context,
+      blossomAssets: [],
     };
 
     if (route.context.includes("home")) {
@@ -256,7 +275,7 @@ export class NostrSiteEngine {
       data.object = await this.store.get(slugId, "posts");
       data.post = data.object as Post;
       data.page = {
-        show_title_and_feature_image: data.post.show_title_and_feature_image,
+        show_title_and_feature_image: data.post?.show_title_and_feature_image,
       };
     } else if (route.context.includes("tag")) {
       const slugId = route.param!;
@@ -284,6 +303,11 @@ export class NostrSiteEngine {
       console.log("bad path");
     }
 
+    // FIXME assets from other objects?
+    if (data.posts)
+      data.blossomAssets.push(...data.posts.map((p) => p.images).flat());
+    if (data.post) data.blossomAssets.push(...data.post.images);
+
     if (
       !route.context.includes("error") &&
       !route.context.includes("home") &&
@@ -297,7 +321,9 @@ export class NostrSiteEngine {
     return data;
   }
 
-  public async render(path: string) {
+  public async render(
+    path: string
+  ): Promise<{ result: string; context: Context }> {
     const start = Date.now();
     console.log("render", path);
 
@@ -316,6 +342,6 @@ export class NostrSiteEngine {
 
     console.log("rendered", path, "in", Date.now() - start, "ms");
 
-    return result;
+    return { result, context };
   }
 }

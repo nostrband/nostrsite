@@ -15,9 +15,10 @@ import downsize from "downsize";
 import merge from "lodash/merge";
 import isUndefined from "lodash/isUndefined";
 import { getRenderer } from "../services/renderer";
+import { templates } from "../services/theme-engine/handlebars/template";
 
 function restrictedCta(options: any) {
-  const { templates, hbs } = options.data.renderer;
+  const { hbs } = getRenderer(options);
   const createFrame = hbs.handlebars.createFrame;
 
   options = options || {};
@@ -32,7 +33,7 @@ function restrictedCta(options: any) {
   });
 
   const data = createFrame(options.data);
-  return templates.execute("content-cta", self, { data });
+  return templates.execute("content-cta", self, { data }, hbs);
 }
 
 export default function content(options: any = {}) {
@@ -57,12 +58,22 @@ export default function content(options: any = {}) {
   }
 
   if (!isUndefined(self.access) && !self.access) {
+    // NOTE: returns SafeString already
     return restrictedCta.apply(self, options);
   }
 
+  let html = self.html;
   if (runTruncate) {
-    return new SafeString(downsize(self.html, truncateOptions));
+    html = new SafeString(downsize(self.html, truncateOptions));
+  } else {
+    html = new SafeString(self.html);
   }
 
-  return new SafeString(self.html);
+  html += `<zap-threads 
+  anchor="${self.id}"
+  user=""
+  relays="wss://relay.nostr.band,wss://relay.damus.io/,wss://nos.lol"
+  />`;
+
+  return new SafeString(html);
 }

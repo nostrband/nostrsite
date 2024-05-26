@@ -25,6 +25,7 @@ import authors from "../../ghost/frontend/helpers/authors";
 import plural from "../../ghost/frontend/helpers/plural";
 import meta_title from "../../ghost/frontend/helpers/meta_title";
 import meta_description from "../../ghost/frontend/helpers/meta_description";
+import pagination from "../../ghost/frontend/helpers/pagination";
 
 function registerAsyncHelper(hbs: any, name: string, fn: any) {
   hbs.registerAsyncHelper(
@@ -98,4 +99,5 @@ export const initHelpers = (hbs: NostrSiteEngine) => {
   registerHelper(hbs, "plural", plural);
   registerHelper(hbs, "meta_title", meta_title);
   registerHelper(hbs, "meta_description", meta_description);
+  registerHelper(hbs, "pagination", pagination);
 };

@@ -157,8 +157,8 @@ export class RamStore implements Store {
         page,
         pages,
         limit: perPage,
-        prev: page > 1,
-        next: end < total,
+        prev: page > 1 ? page - 1 : null,
+        next: end < total ? page + 1 : null,
       },
     };
 

@@ -272,6 +272,36 @@ export default async function ghost_head(options: any) {
     </script>
   `);
 
+    // FIXME zapthreads testing
+    head.push(`
+  <script type="text/javascript" src="https://unpkg.com/zapthreads/dist/zapthreads.iife.js"></script>
+  `);
+
+    // FIXME nostr-login testing
+    head.push(`
+  <script src='https://www.unpkg.com/nostr-login@latest/dist/unpkg.js'
+    data-perms="sign_event:1"
+  ></script>
+  <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+  <script>
+    document.addEventListener("nlAuth", async (e) => {
+      console.log("nlAuth", e);
+      if (e.detail.type === 'login' || e.detail.type === 'signup') {
+        window.__nlAuthed = true;
+      } else {
+        window.__nlAuthed = false;
+      }
+      const zapThreads = document.querySelector('zap-threads');
+      if (zapThreads) {
+        if (window.__nlAuthed)
+          zapThreads.setAttribute("user", window.NostrTools.nip19.npubEncode(await window.nostr.getPublicKey()));
+        else
+          zapThreads.setAttribute("user", "");
+      }
+    });
+  </script>
+  `);
+
     // debug('end fetch');
     if (site.icon) {
       head.push(
@@ -283,17 +313,21 @@ export default async function ghost_head(options: any) {
     }
 
     const pagination = dataRoot.pagination;
-    const paginationUrl = (next: boolean) => {
-      return urlUtils.createUrl(`/page/${pagination.page + (next ? 1 : -1)}`);
-    }
-    if (pagination.prev) {
+    const paginationUrl = (page: boolean) => {
+      return urlUtils.createUrl(`/page/${page}`);
+    };
+    if (pagination?.prev) {
       head.push(
-        '<link rel="prev" href="' + escapeExpression(paginationUrl(false)) + '">'
+        '<link rel="prev" href="' +
+          escapeExpression(paginationUrl(pagination?.prev)) +
+          '">'
       );
     }
-    if (pagination.next) {
+    if (pagination?.next) {
       head.push(
-        '<link rel="next" href="' + escapeExpression(paginationUrl(true)) + '">'
+        '<link rel="next" href="' +
+          escapeExpression(paginationUrl(pagination?.next)) +
+          '">'
       );
     }
 

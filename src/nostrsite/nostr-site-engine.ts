@@ -173,18 +173,19 @@ export class NostrSiteEngine {
       imageUtils: new ImageUtils(this.urlUtils),
       urlUtils: this.urlUtils,
       urlService: this.urlService,
-      prepareContextResource(data: any) {
-        (Array.isArray(data) ? data : [data]).forEach((resource) => {
-          // feature_image_caption contains HTML, making it a SafeString spares theme devs from triple-curlies
-          if (resource.feature_image_caption) {
-            resource.feature_image_caption = new this.hbs.SafeString(
-              resource.feature_image_caption
-            );
-          }
+      prepareContextResource(_: any) {
+        // NOOP now, it's all unneeded
+        // (Array.isArray(data) ? data : [data]).forEach((resource) => {
+        //   // feature_image_caption contains HTML, making it a SafeString spares theme devs from triple-curlies
+        //   // if (resource.feature_image_caption) {
+        //   //   resource.feature_image_caption = new this.hbs.SafeString(
+        //   //     resource.feature_image_caption
+        //   //   );
+        //   // }
 
-          // some properties are extracted to local template data to force one way of using it
-          delete resource.show_title_and_feature_image;
-        });
+        //   // some properties are extracted to local template data to force one way of using it
+        //   // delete resource.show_title_and_feature_image;
+        // });
       },
     };
 
@@ -275,7 +276,7 @@ export class NostrSiteEngine {
       data.object = await this.store.get(slugId, "posts");
       data.post = data.object as Post;
       data.page = {
-        show_title_and_feature_image: data.post?.show_title_and_feature_image,
+        show_title_and_feature_image: data.post ? data.post.show_title_and_feature_image : true,
       };
     } else if (route.context.includes("tag")) {
       const slugId = route.param!;

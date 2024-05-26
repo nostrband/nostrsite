@@ -192,13 +192,14 @@ export class NostrParser {
     if (e.kind !== KIND_LONG_NOTE) throw new Error("Bad kind: " + e.kind);
 
     const id = this.getId(e);
+    const html = await marked.parse(e.content);
     const post: Post = {
       id,
       slug: tv(e, "slug") || tv(e, "d") || id,
       uuid: e.id,
       url: "",
       title: tv(e, "title"),
-      html: await marked.parse(e.content),
+      html,
       comment_id: e.id,
       feature_image: tv(e, "image"),
       feature_image_alt: null,
@@ -215,7 +216,7 @@ export class NostrParser {
       codeinjection_foot: null,
       custom_template: null,
       canonical_url: null,
-      excerpt: tv(e, "summary") || downsize(e.content, { words: 50 }),
+      excerpt: tv(e, "summary"),// || downsize(html, { words: 50 }),
       reading_time: 0,
       access: true,
       og_image: null,
@@ -257,7 +258,7 @@ export class NostrParser {
       slug: tv(e, "slug") || id,
       uuid: e.id,
       url: "",
-      title: downsize(e.content.trim().split("\n")[0], { words: 10 }),
+      title: "",
       html: await marked.parse(e.content),
       comment_id: e.id,
       feature_image: "",
@@ -298,6 +299,10 @@ export class NostrParser {
       show_title_and_feature_image: true,
     };
 
+    let textContent = e.content;
+    for (const l of post.links) textContent = textContent.replace(l, "");
+
+    post.title = downsize(textContent.trim().split("\n")[0], { words: 10 });
     if (e.content.trim() === post.title?.trim())
       post.title = null;
 

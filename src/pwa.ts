@@ -4,17 +4,17 @@ export function launchPwa() {
   console.log("launching pwa");
   const app = document.querySelector<Element>("body");
   if (!app) throw new Error("No body");
-//   const pwaToast = app.querySelector<HTMLDivElement>("#pwa-toast")!;
-//   const pwaToastMessage = pwaToast.querySelector<HTMLDivElement>(
-//     ".message #toast-message"
-//   )!;
-//   const pwaCloseBtn = pwaToast.querySelector<HTMLButtonElement>("#pwa-close")!;
-//   const pwaRefreshBtn =
-//     pwaToast.querySelector<HTMLButtonElement>("#pwa-refresh")!;
+  //   const pwaToast = app.querySelector<HTMLDivElement>("#pwa-toast")!;
+  //   const pwaToastMessage = pwaToast.querySelector<HTMLDivElement>(
+  //     ".message #toast-message"
+  //   )!;
+  //   const pwaCloseBtn = pwaToast.querySelector<HTMLButtonElement>("#pwa-close")!;
+  //   const pwaRefreshBtn =
+  //     pwaToast.querySelector<HTMLButtonElement>("#pwa-refresh")!;
 
-   let refreshSW: (reloadPage?: boolean) => Promise<void> | undefined;
+  let refreshSW: (reloadPage?: boolean) => Promise<void> | undefined;
 
-//   const refreshCallback = () => refreshSW?.(true);
+  //   const refreshCallback = () => refreshSW?.(true);
 
   function hidePwaToast(raf: boolean) {
     if (raf) {
@@ -31,8 +31,8 @@ export function launchPwa() {
     offline;
     requestAnimationFrame(() => {
       hidePwaToast(false);
-    //   if (!offline) pwaToast.classList.add("refresh");
-    //   pwaToast.classList.add("show");
+      //   if (!offline) pwaToast.classList.add("refresh");
+      //   pwaToast.classList.add("show");
     });
   }
 
@@ -40,7 +40,7 @@ export function launchPwa() {
   // check for updates every hour
   const period = 60 * 60 * 1000;
 
-  window.addEventListener("load", () => {
+  const launch = () => {
     // pwaCloseBtn.addEventListener("click", () => hidePwaToast(true));
     refreshSW = registerSW({
       immediate: true,
@@ -69,8 +69,11 @@ export function launchPwa() {
         }
       },
     });
-    refreshSW; //FIXME remove when we implement proper pwa toast
-  });
+    void refreshSW; //FIXME remove when we implement proper pwa toast
+  };
+
+  if (document.readyState === "complete") launch();
+  else window.addEventListener("load", launch);
 }
 
 /**

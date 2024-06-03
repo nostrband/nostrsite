@@ -38,7 +38,10 @@ export default defineConfig({
 
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
-        injectionPoint: undefined
+        injectionPoint: undefined,
+        // required so that index.js wouldn't have variable declarations
+        // colliding with the sw.js, ugly hack, figure out the fix later
+        minify: false
       },
 
       devOptions: {
@@ -52,6 +55,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       plugins: [analyze()],
+      output: {
+        // needed to allow importScripts on the index.js from sw,
+        // also inlines the workbox-window.js which is great
+        format: 'iife',
+        dir: "dist",
+        entryFileNames: "index.js",
+      },
+      external: []
     },
   },
 });

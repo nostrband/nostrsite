@@ -1,64 +1,39 @@
-  import { SiteAddr } from "./nostrsite/types/site";
-import { setHtml } from "./html";
-import { nip19 } from "nostr-tools";
-import { KIND_SITE } from "./consts";
-import { Renderer } from "./renderer";
 import { launchPwa } from "./pwa";
-import { setScriptUrl } from "./pwa-code";
-
-export const INDEX_SCRIPT_URL = import.meta.url;
-setScriptUrl(INDEX_SCRIPT_URL);
-
-async function getAddr(): Promise<SiteAddr | undefined> {
-  // <link rel="manifest" href="manifest.json" />
-  const metas = document.getElementsByTagName("meta");
-  for (const meta of metas) {
-    if (meta.getAttribute("property") !== "nostr:site") continue;
-
-    const content = meta.getAttribute("content");
-    if (!content || !content.startsWith("naddr1")) {
-      console.log("Bad meta nostr:site value: ", content);
-      continue;
-    }
-
-    const { type, data } = nip19.decode(content);
-    if (type !== "naddr" || data.kind !== KIND_SITE || !data.pubkey.trim()) {
-      console.log("Bad meta nostr:site addr: ", type, data);
-      continue;
-    }
-
-    return {
-      name: data.identifier,
-      pubkey: data.pubkey,
-      relays: data.relays,
-    };
-  }
-
-  return undefined;
-}
-
-async function render() {
-  // read-only thing, but SW should re-fetch
-  // it and update HBS object if something changes
-  const addr = await getAddr();
-  console.log("addr", addr);
-  if (!addr) throw new Error("No nostr site addr");
-
-  const renderer = new Renderer(addr);
-  await renderer.start();
-
-  // render using hbs and replace document.html
-  const { result } = await renderer.render(document.location.pathname);
-  setHtml(result);
-}
+import { Renderer, GlobalNostrSite, SiteAddr, NostrSiteRenderer, getMetaAddr, fetchNostrSite, renderCurrentPage } from "libnostrsite";
+import { startSW } from "./sw-code";
 
 async function startPwa() {
-  const addr = await getAddr();
+  const addr = await getMetaAddr();
   console.log("addr", addr);
   if (!addr) throw new Error("No nostr site addr");
 
+  const siteEvent = await fetchNostrSite(addr);
+  if (!siteEvent) throw new Error("No nostr site fetched");
+
+  let scope = "/";
+  if (siteEvent) {
+    const r = siteEvent.tags.find((t) => t.length >= 2 && t[0] === "r");
+    if (r) {
+      scope = new URL(r[1]).pathname;
+      if (!scope.endsWith("/")) scope += "/";
+    }
+  }
+  console.log("service worker scope", scope);
+
+  // NOTE: vite only supports static scope printed in it's options,
+  // so we can't inject this scope by passing as param to launchPwa,
+  // instead we use post-build script inject-dynamic-scope.cjs to
+  // replace static scope with window.nostrSite.serviceWorkerScope
+  // inside dist/index.js. If you know a better way - send PR.
+  // @ts-ignore
+  window.nostrSite.serviceWorkerScope = scope;
+
   // sw is registered and popup shown
-  launchPwa();
+  try {
+    launchPwa();
+  } catch (e) {
+    console.error("Failed to launch pwa", e)
+  }
 
   // when sw is active, notify it about our site address
   navigator.serviceWorker.ready.then(async (r: ServiceWorkerRegistration) => {
@@ -67,17 +42,16 @@ async function startPwa() {
   });
 }
 
-console.log("INDEX_SCRIPT_URL", INDEX_SCRIPT_URL);
-const pwa = new URL(INDEX_SCRIPT_URL).searchParams.get("pwa") === "true";
-console.log("start pwa", pwa);
-if (pwa) {
-  // we're injected into the rendered html code and
-  // must now launch the service worker
-  console.log("start pwa");
-  startPwa();
-} else {
-  // we're called by the bootstrap html to render
-  // the first page
-  console.log("start render");
-  render();
+function newRenderer(addr: SiteAddr): Renderer {
+  return new NostrSiteRenderer(addr);
 }
+
+const nostrSite: GlobalNostrSite = {
+  startPwa,
+  renderCurrentPage,
+  newRenderer,
+  startSW,
+};
+
+// @ts-ignore
+globalThis.nostrSite = nostrSite;

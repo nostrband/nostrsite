@@ -1,6 +1,15 @@
 import { launchPwa } from "./pwa";
-import { Renderer, GlobalNostrSite, SiteAddr, NostrSiteRenderer, getMetaAddr, fetchNostrSite, renderCurrentPage } from "libnostrsite";
+import {
+  Renderer,
+  GlobalNostrSite,
+  SiteAddr,
+  NostrSiteRenderer,
+  getMetaAddr,
+  fetchNostrSite,
+  renderCurrentPage,
+} from "libnostrsite";
 import { startSW } from "./sw-code";
+import { nip19 } from "nostr-tools";
 
 async function startPwa() {
   const addr = await getMetaAddr();
@@ -32,7 +41,7 @@ async function startPwa() {
   try {
     launchPwa();
   } catch (e) {
-    console.error("Failed to launch pwa", e)
+    console.error("Failed to launch pwa", e);
   }
 
   // when sw is active, notify it about our site address
@@ -51,7 +60,11 @@ const nostrSite: GlobalNostrSite = {
   renderCurrentPage,
   newRenderer,
   startSW,
+  nostrTools: {
+    nip19
+  }
 };
+console.log("GlobalNostrSite", nostrSite);
 
 // @ts-ignore
 globalThis.nostrSite = nostrSite;

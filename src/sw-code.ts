@@ -12,7 +12,12 @@ import {
   StrategyOptions,
 } from "workbox-strategies";
 import isEqual from "lodash-es/isEqual";
-import { SiteAddr, Renderer, GlobalNostrSite, isBlossomUrl } from "libnostrsite";
+import {
+  SiteAddr,
+  Renderer,
+  GlobalNostrSite,
+  isBlossomUrl,
+} from "libnostrsite";
 import { WorkboxError } from "workbox-core/_private";
 
 declare let self: ServiceWorkerGlobalScope;
@@ -57,7 +62,11 @@ export function startSW() {
       mediaCache,
     });
 
-    await r.start({ ssr: true, loadAll: true });
+    await r.start({
+      mode: "sw",
+      loadAll: true,
+      origin: globalThis.location.origin,
+    });
 
     r.onUpdate().then(async () => {
       console.log(Date.now(), "sw creating new renderer", addr);
@@ -72,7 +81,8 @@ export function startSW() {
 
   async function renderHandler(options: RouteHandlerCallbackOptions) {
     console.log("sw fetch options", options, renderer);
-    if (!renderer) return new NetworkOnly().handle(options);
+    if (!renderer || !renderer.started())
+      return new NetworkOnly().handle(options);
 
     try {
       const { url } = options;

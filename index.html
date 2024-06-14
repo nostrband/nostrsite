@@ -10,7 +10,7 @@
 
   <!-- site addr -->
   <meta property="nostr:site"
-    content="naddr1qqy8getnw3ekjar9qgs0jguk6age989y6efdf27n5xae528jwgcvw48k5wy8q5hayel609srqsqqqaesqyt8wumn8ghj7un9d3shjtnwdaehgu3wvfskueqpz3mhxue69uhhyetvv9ujuerpd46hxtnfduqs6amnwvaz7tmwdaejumr0ds094m6j" />
+    content="naddr1qqrkv6tpw34xzespzamhxue69uhhyetvv9ujumnsw438qun09e3k7mgppemhxue69uhkummn9ekx7mp0qyg8wumn8ghj7mn0wd68ytnddakj7qghwaehxw309aex2mrp0yh8qunfd4skctnwv46z7qghwaehxw309aex2mrp0yhxummnw3ezucnpdejz7qg4waehxw309aex2mrp0yhxgctdw4eju6t09upzqz82megd75w6ffp0thqytc6mxuvs9crdd2q9y9d7c0tjm358ejcyqvzqqqrhxqcel5wq" />
 
   <!-- assumed by many themes, we always bundle it -->
   <link rel="preload" as="script" href="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"
@@ -20,7 +20,14 @@
 <body>
   <script>
     function render() {
-      window.nostrSite.renderCurrentPage();
+      let path = new URL(window.location.href).searchParams.get("__renderPath");
+      console.log("path", path);
+      if (path && path.startsWith("/")) {
+        window.history.replaceState({}, null, path);
+      } else {
+        path = '';
+      }
+      window.nostrSite.renderCurrentPage(path);
       window.removeEventListener("load", render);
     };
     window.addEventListener("load", render);

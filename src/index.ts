@@ -2,7 +2,6 @@ import { launchPwa } from "./pwa";
 import {
   Renderer,
   GlobalNostrSite,
-  SiteAddr,
   NostrSiteRenderer,
   getMetaAddr,
   fetchNostrSite,
@@ -51,8 +50,8 @@ async function startPwa() {
   });
 }
 
-function newRenderer(addr: SiteAddr): Renderer {
-  return new NostrSiteRenderer(addr);
+function newRenderer(): Renderer {
+  return new NostrSiteRenderer();
 }
 
 const nostrSite: GlobalNostrSite = {

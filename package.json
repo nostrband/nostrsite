@@ -13,6 +13,7 @@
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.7.1",
     "@tryghost/tpl": "^0.1.29",
+    "dexie": "^4.0.7",
     "libnostrsite": "file:../libnostrsite",
     "lodash-es": "^4.17.21",
     "workbox-cacheable-response": "^7.1.0",

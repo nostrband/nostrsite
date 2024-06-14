@@ -32,10 +32,41 @@ export function startSW() {
   cleanupOutdatedCaches();
 
   let renderer: Renderer | undefined;
+  let nextAddr: SiteAddr | undefined;
 
   function ns(): GlobalNostrSite | undefined {
     // @ts-ignore
     return self.nostrSite;
+  }
+
+  async function createSetRenderer(addr: SiteAddr) {
+    console.log(Date.now(), "sw creating new renderer", addr, "old", renderer);
+
+    // already starting w/ same addr
+    if (nextAddr && isEqual(nextAddr, addr)) {
+      console.log("sw next renderer already started", addr);
+      return;
+    }
+
+    // working on new renderer
+    nextAddr = addr;
+
+    // create - may take long time
+    const newRenderer = await createRenderer(addr);
+
+    // a concurrent createSetRenderer started already?
+    if (nextAddr !== addr) {
+      newRenderer.destroy();
+      return;
+    }
+
+    // release old one
+    if (renderer) renderer.destroy();
+
+    // ok we're ready
+    renderer = newRenderer;
+    nextAddr = undefined;
+    console.log("sw started renderer", renderer);
   }
 
   async function startRenderer(addr: SiteAddr) {
@@ -44,14 +75,12 @@ export function startSW() {
       return;
     }
 
-    const newRenderer = await createRenderer(addr);
-    if (renderer) renderer.destroy();
-    renderer = newRenderer;
+    await createSetRenderer(addr);
   }
 
   async function createRenderer(addr: SiteAddr) {
     console.log("sw starting renderer", addr);
-    const r = ns()!.newRenderer(addr);
+    const r = ns()!.newRenderer();
 
     const themeCache = await caches.open("themes");
     const blossomCache = await caches.open("blossom");
@@ -62,18 +91,17 @@ export function startSW() {
       mediaCache,
     });
 
+    // takes long to load all posts
     await r.start({
+      addr,
       mode: "sw",
-      loadAll: true,
       origin: globalThis.location.origin,
     });
 
+    // copy, we must have a new addr refs
+    const updateAddr = { ...addr };
     r.onUpdate().then(async () => {
-      console.log(Date.now(), "sw creating new renderer", addr);
-      const newRenderer = await createRenderer(addr);
-      console.log(Date.now(), "sw created new renderer", addr);
-      renderer!.destroy();
-      renderer = newRenderer;
+      createSetRenderer(updateAddr);
     });
 
     return r;
@@ -220,10 +248,13 @@ export function startSW() {
     }
   }, fromCache("blossom"));
 
-  // blossom other
+  // blossom other except audio/video
   registerRoute(({ request }) => {
-    if (isBlossomUrl(request.url)) {
-      console.log("sw blossom request", request);
+    if (
+      isBlossomUrl(request.url) &&
+      !["image", "audio", "video"].includes(request.destination)
+    ) {
+      console.log("sw other blossom request", request);
       return true;
     }
   }, fromCache("blossom"));

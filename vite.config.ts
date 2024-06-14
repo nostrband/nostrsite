@@ -21,7 +21,7 @@ export default defineConfig({
         name: "<nostr-site-name>",
         short_name: "<nostr-site-short-name>",
         description: "<nostr-site-description>",
-        theme_color: "#ffffff",
+        theme_color: "<nostr-site-accent-color>",
         icons: [
           {
             src: "<nostr-site-icon-192>",

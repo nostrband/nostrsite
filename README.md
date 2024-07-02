@@ -1,5 +1,5 @@
-NostrSites is built around nip512 "Nostr Sites" spec.
+NostrSites is a client-side nip-512 engine for rendering HTML pages from Nostr events using Ghost themes.
 
-It uses nip512 events, along with it's own custom events, to store website settings and configuration.
+It takes the engine from libnostrsite and adds all wrappers required to run it inside a browser tab and in a service-worker. 
 
-It is heavily based on Ghost in terms of website structure and routing, and uses Ghost themes, so your Ghost website should be easy to port to a Nostr Site.  
+This is a very early work in progress, lots of features are missing or partially implemented, use at your own risk.

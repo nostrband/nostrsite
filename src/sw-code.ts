@@ -1,7 +1,4 @@
-import {
-  cleanupOutdatedCaches,
-  //  precacheAndRoute,
-} from "workbox-precaching";
+import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 import { RouteHandlerCallbackOptions, clientsClaim } from "workbox-core";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import {
@@ -17,16 +14,35 @@ import {
   Renderer,
   GlobalNostrSite,
   isBlossomUrl,
+  getPwaSiteAddr,
+  PRECACHE_ENTRIES,
+  // @ts-ignore
 } from "libnostrsite";
 import { WorkboxError } from "workbox-core/_private";
 
 declare let self: ServiceWorkerGlobalScope;
 
-export function startSW() {
+export function startSW(options: {
+  index: string;
+  precacheEntries?: string[];
+}) {
+  let { index, precacheEntries } = options;
+
+  // back compat
+  if (Array.isArray(options)) {
+    index = "/index.js";
+    precacheEntries = options;
+  }
+
   // NOTE: this causes root / path to always be
   // fetched from network, figure out why and maybe get this back.
   // self.__WB_MANIFEST is the default injection point
-  //precacheAndRoute(self.__WB_MANIFEST);
+  // if (self.__WB_MANIFEST) precacheAndRoute(self.__WB_MANIFEST);
+  console.log("precacheEntries", PRECACHE_ENTRIES);
+  precacheAndRoute(
+    PRECACHE_ENTRIES.map((url: string) => ({ url, revision: null }))
+  );
+  if (precacheEntries) precacheAndRoute(precacheEntries);
 
   // clean old assets
   cleanupOutdatedCaches();
@@ -53,9 +69,11 @@ export function startSW() {
 
     // create - may take long time
     const newRenderer = await createRenderer(addr);
+    console.log("sw created renderer", newRenderer);
 
     // a concurrent createSetRenderer started already?
     if (nextAddr !== addr) {
+      console.log("sw concurrent renderer starting", nextAddr, addr);
       newRenderer.destroy();
       return;
     }
@@ -72,11 +90,22 @@ export function startSW() {
   async function startRenderer(addr: SiteAddr) {
     if (renderer && isEqual(renderer.getAddr(), addr)) {
       console.log("sw renderer already started", addr);
-      return;
+    } else {
+      await createSetRenderer(addr);
     }
-
-    await createSetRenderer(addr);
   }
+
+  // async function notifyClients(clients?: readonly Client[]) {
+  //   clients = clients || await (
+  //     globalThis as unknown as ServiceWorkerGlobalScope
+  //   ).clients.matchAll({
+  //     includeUncontrolled: true,
+  //   });
+  //   console.log("sw notify clients", clients.length);
+  //   for (const client of clients) {
+  //     client.postMessage("rendererReady");
+  //   }
+  // }
 
   async function createRenderer(addr: SiteAddr) {
     console.log("sw starting renderer", addr);
@@ -95,6 +124,7 @@ export function startSW() {
     await r.start({
       addr,
       mode: "sw",
+      ssrIndexScriptUrl: index,
       origin: globalThis.location.origin,
     });
 
@@ -287,4 +317,9 @@ export function startSW() {
   // HAHA browser-hbs and probably others assume this
   // @ts-ignore
   self.window = self;
+
+  // offline-mode launch from db
+  getPwaSiteAddr().then((addr: SiteAddr | undefined) => {
+    if (addr) startRenderer(addr);
+  });
 }

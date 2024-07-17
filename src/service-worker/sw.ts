@@ -1,8 +1,11 @@
 /// <reference lib="webworker" />
-import { GlobalNostrSite } from "libnostrsite";
-
-// reuse the same script as the frontend
-importScripts("/index.js");
-
 // @ts-ignore
-(self.nostrSite as GlobalNostrSite).startSW();
+import { GlobalNostrSite } from "libnostrsite";
+// reuse the same script as the frontend
+const index = "/index.js";
+importScripts(index);
+// @ts-ignore
+(self.nostrSite as GlobalNostrSite).startSW({
+  index,
+  precacheEntries: [index, "/sw.js", "/manifest.webmanifest"],
+});

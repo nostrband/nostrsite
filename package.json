@@ -13,6 +13,7 @@
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.7.1",
     "@tryghost/tpl": "^0.1.29",
+    "cheerio": "^1.0.0-rc.12",
     "dexie": "^4.0.7",
     "libnostrsite": "file:../libnostrsite",
     "lodash-es": "^4.17.21",

@@ -5,19 +5,15 @@ import {
   NostrSiteRenderer,
   getMetaAddr,
   fetchNostrSite,
-  renderCurrentPage,
   setPwaSiteAddr,
-  NostrStore,
   getCachedSite,
-  getRelativeUrlPrefix,
-  NostrParser,
-  StoreObject,
   tv,
+  prepareGlobalNostrSite,
+  renderCurrentPage,
+  startReplacingFeatureImagesWithVideoPreviews,
   // @ts-ignore
 } from "libnostrsite";
 import { startSW } from "./sw-code";
-import { nip19 } from "nostr-tools";
-import NDK, { NDKEvent } from "@nostr-dev-kit/ndk";
 
 let tabPromiseOk = null;
 let tabPromiseErr = null;
@@ -38,7 +34,7 @@ async function startPwa() {
 
   // get the site from local db or from relays
   let siteEvent = await getCachedSite(addr);
-  if (siteEvent) siteEvent = await fetchNostrSite(addr);
+  if (!siteEvent) siteEvent = await fetchNostrSite(addr);
   if (!siteEvent) throw new Error("No nostr site fetched");
 
   // parse the scope
@@ -46,7 +42,7 @@ async function startPwa() {
   const url = tv(siteEvent, "r");
   if (url) {
     try {
-      scope = new URL(url[1]).pathname;
+      scope = new URL(url).pathname;
       if (!scope.endsWith("/")) scope += "/";
     } catch (e) {
       console.warn("bad scope in url", url);
@@ -80,7 +76,16 @@ function newRenderer(): Renderer {
   return new NostrSiteRenderer();
 }
 
-async function startTab() {
+async function startTab(options?: { preview: boolean }) {
+
+  try {
+    startReplacingFeatureImagesWithVideoPreviews();
+  } catch (e) {
+    console.log("failure at replaceFeatureImagesWithVideoPreviews", e);
+  }
+
+  if (options?.preview) return;
+
   try {
     const addr = await getMetaAddr();
     console.log("start tab addr", addr);
@@ -108,45 +113,55 @@ async function startTab() {
     //   });
     // });
 
-    // site from db or relays
-    let site = await getCachedSite(addr);
-    if (site) site = await fetchNostrSite(addr);
-    if (!site) throw new Error("No nostr site fetched");
+    const renderer = new NostrSiteRenderer();
+    await renderer.start({
+      addr,
+      origin: window.location.origin,
+      mode: "tab",
+    });
 
-    // parser to convert cached events to proper data structures
-    nostrSite.parser = new NostrParser(
-      window.location.origin,
-      /*useCache*/ true
-    );
+    nostrSite.renderer = renderer;
+    nostrSite.ndk = renderer.ndk;
+
+    // // site from db or relays
+    // let site = await getCachedSite(addr);
+    // if (!site) site = await fetchNostrSite(addr);
+    // if (!site) throw new Error("No nostr site fetched");
+
+    // // parser to convert cached events to proper data structures
+    // nostrSite.parser = new NostrParser(
+    //   window.location.origin,
+    //   /*useCache*/ true
+    // );
 
     // ndk used by the store, don't connect anywhere
     // by default as everything might be in cache
-    nostrSite.ndk = new NDK({});
-    nostrSite.ndk.connect();
+    // nostrSite.ndk = new NDK({});
+    // nostrSite.ndk.connect();
 
     // parse site event
-    const settings = nostrSite.parser.parseSite(
-      addr,
-      new NDKEvent(nostrSite.ndk, site)
-    );
+    // const settings = nostrSite.parser.parseSite(
+    //   addr,
+    //   new NDKEvent(nostrSite.ndk, site)
+    // );
 
-    // init and load site data from local db
-    const store = new NostrStore(
-      "tab",
-      nostrSite.ndk,
-      settings,
-      nostrSite.parser
-    );
-    nostrSite.store = store;
+    // // init and load site data from local db
+    // const store = new NostrStore(
+    //   "tab",
+    //   nostrSite.ndk,
+    //   settings,
+    //   nostrSite.parser
+    // );
+    nostrSite.store = renderer.store;
 
     // no more than 1k posts loaded from local cache
-    await store.load(1000);
+    // await store.load(1000);
 
     // FIXME reimplemented here bcs it's too many
     // deps on old Ghost parts
-    await store.prepare((o: StoreObject) => {
-      return settings.url + getRelativeUrlPrefix(o) + (o.slug || o.id);
-    });
+    // await store.prepare((o: StoreObject) => {
+    //   return settings.url + getRelativeUrlPrefix(o) + (o.slug || o.id);
+    // });
 
     tabPromiseOk!();
   } catch (e) {
@@ -155,18 +170,18 @@ async function startTab() {
   }
 }
 
-const nostrSite: GlobalNostrSite = {
+const nostrSite: GlobalNostrSite = prepareGlobalNostrSite({
   startPwa,
   startTab,
-  renderCurrentPage,
   newRenderer,
   startSW,
+  renderCurrentPage,
   tabReady: tabPromise,
-  nostrTools: {
-    nip19,
-  },
-};
+});
 console.log("GlobalNostrSite", nostrSite);
 
 // @ts-ignore
 globalThis.nostrSite = nostrSite;
+
+// notify async plugins that core has loaded
+if (globalThis.document) globalThis.document.dispatchEvent(new Event("npLoad"));

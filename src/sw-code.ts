@@ -145,8 +145,8 @@ export function startSW(options: {
     try {
       const { url } = options;
 
-      // rss makes no sense on the client
-      if (renderer.isRss(url.pathname))
+      // rss or ssr-only urls make no sense on the client
+      if (renderer.isRss(url.pathname) || renderer.isSsrOnly(url.pathname))
         return new NetworkOnly().handle(options);
 
       const { result } = await renderer.render(url.pathname);
